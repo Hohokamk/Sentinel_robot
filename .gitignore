@@ -12,3 +12,16 @@ build/
 .vs/
 *.suo
 *.user
+
+# VisualGDB / Windows 构建产物（.o/.dep/.rsp 每次编译都会变）
+VisualGDB/
+STM32F405/VisualGDB/
+*.dep
+*.rsp
+*.log
+*.alldeps
+*.progstat
+
+# IDE 缓存（VisualGDB CodeDB/CodeExplorer）
+.visualgdb/
+STM32F405/.visualgdb/

@@ -1,3 +1,0 @@
-/home/hohokam/Projects/Robomaster/Sentinel_robot/RCS_code_0.0/build/CMakeFiles/STM32F405.elf.dir
-/home/hohokam/Projects/Robomaster/Sentinel_robot/RCS_code_0.0/build/CMakeFiles/edit_cache.dir
-/home/hohokam/Projects/Robomaster/Sentinel_robot/RCS_code_0.0/build/CMakeFiles/rebuild_cache.dir
