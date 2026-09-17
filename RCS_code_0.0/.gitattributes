@@ -1,0 +1,18 @@
+# 行尾统一策略：
+#   git 仓库内一律存 LF；检出时 Windows 自动转 CRLF、Linux 保持 LF。
+#   这样 Windows(VisualGDB) 和 Linux(VS Code) 两边编辑同一份源码都不会互相污染。
+* text=auto
+
+# Linux 工具链相关文件必须保持 LF（CMake/OpenOCD/脚本）
+*.sh text eol=lf
+*.s  text eol=lf
+*.ld text eol=lf
+*.cfg text eol=lf
+CMakeLists.txt text eol=lf
+
+# 二进制/构建产物：不做任何行尾转换
+*.o   -text
+*.elf -text
+*.bin -text
+*.map -text
+*.svd -text
