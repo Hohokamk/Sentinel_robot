@@ -1,0 +1,9 @@
+{
+  // 文件嵌套：同名 .cpp/.h 折叠成一组，减少平铺感（纯显示效果，不影响任何构建）
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.cpp": "${basename}.h, ${basename}.hpp, ${basename}.c, ${basename}.inc",
+    "*.c":   "${basename}.h, ${basename}.inc",
+    "*.h":   "${basename}.cpp, ${basename}.c"
+  }
+}
