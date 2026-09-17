@@ -1,0 +1,14 @@
+# build outputs
+build/
+*.o
+*.elf
+*.bin
+*.map
+
+# VS Code
+.vscode/*.log
+
+# IDE (Windows 时代遗留，可自行删除)
+.vs/
+*.suo
+*.user

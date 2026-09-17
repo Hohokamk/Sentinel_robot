@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CMake Configure (Debug)",
+      "type": "shell",
+      "command": "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi-toolchain.cmake",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "生成 Debug 构建（首次或 CMakeLists.txt 变更后自动运行）"
+    },
+    {
+      "label": "Build (Debug)",
+      "type": "shell",
+      "command": "cmake --build build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["CMake Configure (Debug)"],
+      "dependsOrder": "sequence",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"],
+      "detail": "编译并生成 build/STM32F405.elf 和 .bin"
+    },
+    {
+      "label": "Flash (OpenOCD)",
+      "type": "shell",
+      "command": "bash scripts/flash.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "一键烧录 build/STM32F405.elf 到板子并复位运行"
+    },
+    {
+      "label": "Clean + Rebuild",
+      "type": "shell",
+      "command": "cmake --build build --target clean && cmake --build build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": ["$gcc"],
+      "detail": "全量重编译"
+    }
+  ]
+}

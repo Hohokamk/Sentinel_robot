@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "name": "STM32F405",
+      "includePath": [
+        "${workspaceFolder}/STM32F405",
+        "${workspaceFolder}/ThirdParty/STM32F4xx_HAL/Inc",
+        "${workspaceFolder}/ThirdParty/STM32F4xx_HAL/Inc/Legacy",
+        "${workspaceFolder}/ThirdParty/CMSIS/Device/ST/STM32F4xx/Include",
+        "${workspaceFolder}/ThirdParty/CMSIS/Include",
+        "${workspaceFolder}/ThirdParty/FreeRTOS/Source/CMSIS_RTOS",
+        "${workspaceFolder}/ThirdParty/FreeRTOS/Source/include",
+        "${workspaceFolder}/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM3"
+      ],
+      "defines": [
+        "ARM_MATH_CM4",
+        "STM32F405RG",
+        "stm32_flash_layout",
+        "STM32F405xx",
+        "DEBUG=1"
+      ],
+      "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
+      "intelliSenseMode": "gcc-arm",
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+    }
+  ],
+  "version": 4
+}

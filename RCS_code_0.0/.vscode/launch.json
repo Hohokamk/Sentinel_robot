@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "STM32F405 Debug (OpenOCD + CMSIS-DAP)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/STM32F405.elf",
+      "device": "STM32F405RG",
+      "configFiles": [
+        "interface/cmsis-dap.cfg",
+        "target/stm32f4x.cfg"
+      ],
+      "openOCDLaunchCommands": [
+        "adapter speed 3000"
+      ],
+      "runToEntryPoint": "main",
+      "rtos": "FreeRTOS",
+      "preLaunchTask": "Build (Debug)",
+      "showDevDebugOutput": "parsed"
+    },
+    {
+      "name": "STM32F405 Debug (OpenOCD + ST-Link)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/STM32F405.elf",
+      "device": "STM32F405RG",
+      "configFiles": [
+        "interface/stlink-v2.cfg",
+        "target/stm32f4x.cfg"
+      ],
+      "runToEntryPoint": "main",
+      "rtos": "FreeRTOS",
+      "preLaunchTask": "Build (Debug)",
+      "showDevDebugOutput": "parsed"
+    }
+  ]
+}
