@@ -3,54 +3,54 @@
 #include "string.h"
 
 /*
-* @brief		CANÍ¨ĞÅ³õÊ¼»¯º¯Êı
-* @param		CANÍ¨µÀ»ùµØÖ·
+* @brief		CANé€šä¿¡åˆå§‹åŒ–å‡½æ•°
+* @param		CANé€šé“åŸºåœ°å€
 */
 void CAN::Init(CAN_TypeDef* instance)
 {
-	hcan.Instance = instance;				//can»ùµØÖ·¸³Öµ
-	hcan.Init.Prescaler = 6;				//·ÖÆµÏµÊı£¨²»¼õÒ»£©
-	hcan.Init.Mode = CAN_MODE_NORMAL;		//ÆÕÍ¨Ä£Ê½
-	hcan.Init.SJW = CAN_SJW_1TQ;			//Í¬²½¶ÎÎª1¸ö×Ö½Ú
-	hcan.Init.BS1 = CAN_BS1_2TQ;			//ÏàÎ»»º³å¶Î1Îª2¸ö×Ö½Ú
-	hcan.Init.BS2 = CAN_BS2_4TQ;			//ÏàÎ»»º³å¶Î2Îª4¸ö×Ö½Ú
-	hcan.Init.TTCM = DISABLE;				//·ÇÊ±¼ä´¥·¢Í¨ĞÅÄ£Ê½
-	hcan.Init.ABOM = ENABLE;				//ÔÊĞí×Ô¶¯ÀëÏß¹ÜÀí
-	hcan.Init.AWUM = ENABLE;				//ÔÊĞí×Ô¶¯»½ĞÑ
-	hcan.Init.NART = DISABLE;				//½ûÖ¹±¨ÎÄ×Ô¶¯ÖØ´«£¬¼´Êı¾İÖ»´«Ò»´Î
-	hcan.Init.RFLM = DISABLE;				//½ûÖ¹±¨ÎÄÒç³öËø¶¨
-	hcan.Init.TXFP = DISABLE;				//´«ÊäÓÅÏÈ¼¶£¬EANBLE:IDÓÅÏÈ DISABLE:±¨ÎÄÓÅÏÈ
-	HAL_CAN_Init(&hcan);					//µ÷ÓÃHAL¿â³õÊ¼»¯º¯Êı
-	HAL_CAN_Transmit_IT(&hcan);				//¿ªÆôCANÍ¨ĞÅ·¢ËÍÖĞ¶Ï
-	HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);	//¿ªÆôCANÍ¨ĞÅ½ÓÊÕÖĞ¶Ï
+	hcan.Instance = instance;				//canåŸºåœ°å€èµ‹å€¼
+	hcan.Init.Prescaler = 6;				//åˆ†é¢‘ç³»æ•°ï¼ˆä¸å‡ä¸€ï¼‰
+	hcan.Init.Mode = CAN_MODE_NORMAL;		//æ™®é€šæ¨¡å¼
+	hcan.Init.SJW = CAN_SJW_1TQ;			//åŒæ­¥æ®µä¸º1ä¸ªå­—èŠ‚
+	hcan.Init.BS1 = CAN_BS1_2TQ;			//ç›¸ä½ç¼“å†²æ®µ1ä¸º2ä¸ªå­—èŠ‚
+	hcan.Init.BS2 = CAN_BS2_4TQ;			//ç›¸ä½ç¼“å†²æ®µ2ä¸º4ä¸ªå­—èŠ‚
+	hcan.Init.TTCM = DISABLE;				//éæ—¶é—´è§¦å‘é€šä¿¡æ¨¡å¼
+	hcan.Init.ABOM = ENABLE;				//å…è®¸è‡ªåŠ¨ç¦»çº¿ç®¡ç†
+	hcan.Init.AWUM = ENABLE;				//å…è®¸è‡ªåŠ¨å”¤é†’
+	hcan.Init.NART = DISABLE;				//ç¦æ­¢æŠ¥æ–‡è‡ªåŠ¨é‡ä¼ ï¼Œå³æ•°æ®åªä¼ ä¸€æ¬¡
+	hcan.Init.RFLM = DISABLE;				//ç¦æ­¢æŠ¥æ–‡æº¢å‡ºé”å®š
+	hcan.Init.TXFP = DISABLE;				//ä¼ è¾“ä¼˜å…ˆçº§ï¼ŒEANBLE:IDä¼˜å…ˆ DISABLE:æŠ¥æ–‡ä¼˜å…ˆ
+	HAL_CAN_Init(&hcan);					//è°ƒç”¨HALåº“åˆå§‹åŒ–å‡½æ•°
+	HAL_CAN_Transmit_IT(&hcan);				//å¼€å¯CANé€šä¿¡å‘é€ä¸­æ–­
+	HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);	//å¼€å¯CANé€šä¿¡æ¥æ”¶ä¸­æ–­
 	InitFilter();
 }
 
 /*
- * @brief      CAN¹ıÂËÆ÷³õÊ¼»¯
+ * @brief      CANè¿‡æ»¤å™¨åˆå§‹åŒ–
 */
 void CAN::InitFilter()
 {
 	//can1 &can2 use same filter config
 	CAN_FilterConfTypeDef		CAN_FilterConfigStructure;
 
-	//can1(0-13)ºÍcan2(14-27)·Ö±ğµÃµ½Ò»°ëµÄfilter
+	//can1(0-13)å’Œcan2(14-27)åˆ†åˆ«å¾—åˆ°ä¸€åŠçš„filter
 	if (hcan.Instance == CAN1)
 	{
-		CAN_FilterConfigStructure.FilterNumber = 0;								//Ñ¡Ôñ¹ıÂËÆ÷0
+		CAN_FilterConfigStructure.FilterNumber = 0;								//é€‰æ‹©è¿‡æ»¤å™¨0
 	}
 	else if (hcan.Instance == CAN2)
 	{
-		CAN_FilterConfigStructure.FilterNumber = 14;							//Ñ¡Ôñ¹ıÂËÆ÷0
+		CAN_FilterConfigStructure.FilterNumber = 14;							//é€‰æ‹©è¿‡æ»¤å™¨0
 	}
-	CAN_FilterConfigStructure.FilterMode = CAN_FILTERMODE_IDMASK;				//ÑÚÂëÄ£Ê½
-	CAN_FilterConfigStructure.FilterScale = CAN_FILTERSCALE_32BIT;				//32Î»¿í
+	CAN_FilterConfigStructure.FilterMode = CAN_FILTERMODE_IDMASK;				//æ©ç æ¨¡å¼
+	CAN_FilterConfigStructure.FilterScale = CAN_FILTERSCALE_32BIT;				//32ä½å®½
 	CAN_FilterConfigStructure.FilterIdHigh = 0x0000;
 	CAN_FilterConfigStructure.FilterIdLow = 0x0000;
 	CAN_FilterConfigStructure.FilterMaskIdHigh = 0x0000;
-	CAN_FilterConfigStructure.FilterMaskIdLow = 0x0000;							//½ÓÊÕËùÓĞÊı¾İ
-	CAN_FilterConfigStructure.FilterFIFOAssignment = CAN_FilterFIFO0;			//¹ıÂËÆ÷¹ØÁªµ½FIFO0
-	CAN_FilterConfigStructure.FilterActivation = ENABLE;						//¼¤»î¹ıÂËÆ÷
+	CAN_FilterConfigStructure.FilterMaskIdLow = 0x0000;							//æ¥æ”¶æ‰€æœ‰æ•°æ®
+	CAN_FilterConfigStructure.FilterFIFOAssignment = CAN_FilterFIFO0;			//è¿‡æ»¤å™¨å…³è”åˆ°FIFO0
+	CAN_FilterConfigStructure.FilterActivation = ENABLE;						//æ¿€æ´»è¿‡æ»¤å™¨
 	CAN_FilterConfigStructure.BankNumber = 0;
 
 	HAL_CAN_ConfigFilter(&hcan, &CAN_FilterConfigStructure);
@@ -60,8 +60,8 @@ void CAN::InitFilter()
 }
 
 /*
- * @brief       CANÍâÉèÅäÖÃ
- * @param       *hcan    : CAN¾ä±úÖ¸Õë
+ * @brief       CANå¤–è®¾é…ç½®
+ * @param       *hcan    : CANå¥æŸ„æŒ‡é’ˆ
 */
 void HAL_CAN_MspInit(CAN_HandleTypeDef* hcan)
 {
@@ -110,17 +110,17 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* hcan)
 
 
 /*
- * @brief       CANÍ¨ĞÅ´«Êäº¯Êı
- * @param       ID		:	CANÍâÉèID
- * @param		*pData	: 	´«ÊäÊı¾İÊı×é
- * @param		len		:	´«ÊäÊı¾İ³¤¶È
+ * @brief       CANé€šä¿¡ä¼ è¾“å‡½æ•°
+ * @param       ID		:	CANå¤–è®¾ID
+ * @param		*pData	: 	ä¼ è¾“æ•°æ®æ•°ç»„
+ * @param		len		:	ä¼ è¾“æ•°æ®é•¿åº¦
 */
 HAL_StatusTypeDef CAN::Transmit(const uint32_t ID, const uint8_t* const pData, const uint8_t len)
 {
-	hcan.pTxMsg->StdId = ID;					//ÉèÖÃ±êÊ¶·û
-	hcan.pTxMsg->IDE = CAN_ID_STD;				//±ê×¼Ö¡(ÎŞÍØÕ¹)
-	hcan.pTxMsg->RTR = CAN_RTR_DATA;			//Êı¾İÖ¡
-	hcan.pTxMsg->DLC = len;						//ÉèÖÃ³¤¶È
+	hcan.pTxMsg->StdId = ID;					//è®¾ç½®æ ‡è¯†ç¬¦
+	hcan.pTxMsg->IDE = CAN_ID_STD;				//æ ‡å‡†å¸§(æ— æ‹“å±•)
+	hcan.pTxMsg->RTR = CAN_RTR_DATA;			//æ•°æ®å¸§
+	hcan.pTxMsg->DLC = len;						//è®¾ç½®é•¿åº¦
 	memcpy(hcan.pTxMsg->Data, pData, len);
 	HAL_StatusTypeDef status = HAL_CAN_Transmit(&hcan, 10);
 
@@ -129,8 +129,8 @@ HAL_StatusTypeDef CAN::Transmit(const uint32_t ID, const uint8_t* const pData, c
 }
 
 /*
- * @brief       CANÍ¨ĞÅ½ÓÊÕ»Øµ÷º¯Êı
- * @param       *hcan		:	CAN¾ä±úÖ¸Õë
+ * @brief       CANé€šä¿¡æ¥æ”¶å›è°ƒå‡½æ•°
+ * @param       *hcan		:	CANå¥æŸ„æŒ‡é’ˆ
 */
 void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan)
 {

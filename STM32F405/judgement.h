@@ -12,18 +12,18 @@
 #define BYTE3(dwTemp)       ( *( (char *)(&dwTemp) + 3) )
 
 
-/****************************¿ªÊ¼±êÖ¾*********************/
+/****************************å¼€å§‹æ ‡å¿—*********************/
 #define UI_SOF 0xA5
-/****************************CMD_IDÊı¾İ********************/
+/****************************CMD_IDæ•°æ®********************/
 #define UI_CMD_Robo_Exchange 0x0301    
-/****************************ÄÚÈİIDÊı¾İ********************/
+/****************************å†…å®¹IDæ•°æ®********************/
 #define UI_Data_ID_Del 0x100 
 #define UI_Data_ID_Draw1 0x101
 #define UI_Data_ID_Draw2 0x102
 #define UI_Data_ID_Draw5 0x103
 #define UI_Data_ID_Draw7 0x104
 #define UI_Data_ID_DrawChar 0x110
-/****************************ºì·½»úÆ÷ÈËID********************/
+/****************************çº¢æ–¹æœºå™¨äººID********************/
 #define UI_Data_RobotID_RHero 1         
 #define UI_Data_RobotID_REngineer 2
 #define UI_Data_RobotID_RStandard1 3
@@ -32,7 +32,7 @@
 #define UI_Data_RobotID_RAerial 6
 #define UI_Data_RobotID_RSentry 7
 #define UI_Data_RobotID_RRadar 9
-/****************************À¶·½»úÆ÷ÈËID********************/
+/****************************è“æ–¹æœºå™¨äººID********************/
 #define UI_Data_RobotID_BHero 101
 #define UI_Data_RobotID_BEngineer 102
 #define UI_Data_RobotID_BStandard1 103
@@ -41,45 +41,45 @@
 #define UI_Data_RobotID_BAerial 106
 #define UI_Data_RobotID_BSentry 107
 #define UI_Data_RobotID_BRadar 109
-/**************************ºì·½²Ù×÷ÊÖID************************/
+/**************************çº¢æ–¹æ“ä½œæ‰‹ID************************/
 #define UI_Data_CilentID_RHero 0x0101
 #define UI_Data_CilentID_REngineer 0x0102
 #define UI_Data_CilentID_RStandard1 0x0103
 #define UI_Data_CilentID_RStandard2 0x0104
 #define UI_Data_CilentID_RStandard3 0x0105
 #define UI_Data_CilentID_RAerial 0x0106
-/***************************À¶·½²Ù×÷ÊÖID***********************/
+/***************************è“æ–¹æ“ä½œæ‰‹ID***********************/
 #define UI_Data_CilentID_BHero 0x0165
 #define UI_Data_CilentID_BEngineer 0x0166
 #define UI_Data_CilentID_BStandard1 0x0167
 #define UI_Data_CilentID_BStandard2 0x0168
 #define UI_Data_CilentID_BStandard3 0x0169
 #define UI_Data_CilentID_BAerial 0x016A
-/***************************É¾³ı²Ù×÷***************************/
+/***************************åˆ é™¤æ“ä½œ***************************/
 #define UI_Data_Del_NoOperate 0
 #define UI_Data_Del_Layer 1
 #define UI_Data_Del_ALL 2
-/***************************Í¼ĞÎÅäÖÃ²ÎÊı__Í¼ĞÎ²Ù×÷********************/
+/***************************å›¾å½¢é…ç½®å‚æ•°__å›¾å½¢æ“ä½œ********************/
 #define UI_Graph_ADD 1
 #define UI_Graph_Change 2
 #define UI_Graph_Del 3
-/***************************Í¼ĞÎÅäÖÃ²ÎÊı__Í¼ĞÎÀàĞÍ********************/
-#define UI_Graph_Line 0         //Ö±Ïß
-#define UI_Graph_Rectangle 1    //¾ØĞÎ
-#define UI_Graph_Circle 2       //ÕûÔ²
-#define UI_Graph_Ellipse 3      //ÍÖÔ²
-#define UI_Graph_Arc 4          //Ô²»¡
-#define UI_Graph_Float 5        //¸¡µãĞÍ
-#define UI_Graph_Int 6          //ÕûĞÎ
-#define UI_Graph_Char 7         //×Ö·ûĞÍ
-/***************************Í¼ĞÎÅäÖÃ²ÎÊı__Í¼ĞÎÑÕÉ«********************/
-#define UI_Color_Main 0         //ºìÀ¶Ö÷É«
+/***************************å›¾å½¢é…ç½®å‚æ•°__å›¾å½¢ç±»å‹********************/
+#define UI_Graph_Line 0         //ç›´çº¿
+#define UI_Graph_Rectangle 1    //çŸ©å½¢
+#define UI_Graph_Circle 2       //æ•´åœ†
+#define UI_Graph_Ellipse 3      //æ¤­åœ†
+#define UI_Graph_Arc 4          //åœ†å¼§
+#define UI_Graph_Float 5        //æµ®ç‚¹å‹
+#define UI_Graph_Int 6          //æ•´å½¢
+#define UI_Graph_Char 7         //å­—ç¬¦å‹
+/***************************å›¾å½¢é…ç½®å‚æ•°__å›¾å½¢é¢œè‰²********************/
+#define UI_Color_Main 0         //çº¢è“ä¸»è‰²
 #define UI_Color_Yellow 1
 #define UI_Color_Green 2
 #define UI_Color_Orange 3
-#define UI_Color_Purplish_red 4 //×ÏºìÉ«
+#define UI_Color_Purplish_red 4 //ç´«çº¢è‰²
 #define UI_Color_Pink 5
-#define UI_Color_Cyan 6         //ÇàÉ«
+#define UI_Color_Cyan 6         //é’è‰²
 #define UI_Color_Black 7
 #define UI_Color_White 8
 
@@ -97,12 +97,12 @@ public:
 	uint32_t id_blue = 256;
 	uint32_t id_red = 256;
 
-	uint8_t baseRFID;//»ùµØÔöÒæ
-	uint8_t highlandRFID;//¸ßµØÔöÒæ
-	uint8_t energyRFID;//ÄÜÁ¿»ú¹ØÔöÒæ
-	uint8_t feipoRFID;//·ÉÆÂÔöÒæ
-	uint8_t outpostRFID;//Ç°ÉÚÕ¾ÔöÒæ
-	uint8_t resourseRFID;//×ÊÔ´µºÔöÒæ
+	uint8_t baseRFID;//åŸºåœ°å¢ç›Š
+	uint8_t highlandRFID;//é«˜åœ°å¢ç›Š
+	uint8_t energyRFID;//èƒ½é‡æœºå…³å¢ç›Š
+	uint8_t feipoRFID;//é£å¡å¢ç›Š
+	uint8_t outpostRFID;//å‰å“¨ç«™å¢ç›Š
+	uint8_t resourseRFID;//èµ„æºå²›å¢ç›Š
 	int32_t nBullet = 0;
 	int32_t count = 0;
 
@@ -127,53 +127,53 @@ public:
 	struct {
 		uint16_t CmdID;
 
-		//ÏêÏ¸ÃèÊöÇë·­ÔÄ¡¶RoboMaster 2021 ²ÃÅĞÏµÍ³´®¿ÚĞ­Òé¸½Â¼ V1.0£¨20210203£©¡·
-		//cmd:0x0001 ·¢ËÍÆµÂÊ£º1Hz
+		//è¯¦ç»†æè¿°è¯·ç¿»é˜…ã€ŠRoboMaster 2021 è£åˆ¤ç³»ç»Ÿä¸²å£åè®®é™„å½• V1.0ï¼ˆ20210203ï¼‰ã€‹
+		//cmd:0x0001 å‘é€é¢‘ç‡ï¼š1Hz
 		struct {
-			uint8_t game_type : 4;//±ÈÈüÀàĞÍ
-			uint8_t game_progress : 4;//µ±Ç°±ÈÈü½×¶Î
-			uint16_t stage_remain_time;//µ±Ç°½×¶ÎÊ£ÓàÊ±¼ä
+			uint8_t game_type : 4;//æ¯”èµ›ç±»å‹
+			uint8_t game_progress : 4;//å½“å‰æ¯”èµ›é˜¶æ®µ
+			uint16_t stage_remain_time;//å½“å‰é˜¶æ®µå‰©ä½™æ—¶é—´
 			uint64_t SyncTimeStamp;
 		} game_status_t;
 
-		//cmd:0x0002 ±ÈÈü½áÊøÊ±·¢ËÍ
+		//cmd:0x0002 æ¯”èµ›ç»“æŸæ—¶å‘é€
 		struct {
-			uint8_t winner;//0£ºÆ½¾Ö£¬1£ººì·½Ê¤Àû£¬2£ºÀ¶·½Ê¤Àû
+			uint8_t winner;//0ï¼šå¹³å±€ï¼Œ1ï¼šçº¢æ–¹èƒœåˆ©ï¼Œ2ï¼šè“æ–¹èƒœåˆ©
 		} game_result_t;
 
-		//cmd:0x0003 ·¢ËÍÆµÂÊ£º1Hz
+		//cmd:0x0003 å‘é€é¢‘ç‡ï¼š1Hz
 		struct {
-			uint16_t red_1_robot_HP;//ºì1Ó¢ĞÛ»úÆ÷ÈËÑªÁ¿
-			uint16_t red_2_robot_HP;//ºì2¹¤³Ì»úÆ÷ÈËÑªÁ¿
-			uint16_t red_3_robot_HP;//ºì3²½±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t red_4_robot_HP;//ºì4²½±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t red_5_robot_HP;//ºì5²½±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t red_7_robot_HP;//ºì7ÉÚ±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t red_outpost_HP;//ºì·½Ç°ÉÚÕ¾ÑªÁ¿
-			uint16_t red_base_HP;//ºì·½»ùµØÑªÁ¿
-			uint16_t blue_1_robot_HP;//À¶1Ó¢ĞÛ»úÆ÷ÈËÑªÁ¿
-			uint16_t blue_2_robot_HP;//À¶2¹¤³Ì»úÆ÷ÈËÑªÁ¿
-			uint16_t blue_3_robot_HP;//À¶3²½±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t blue_4_robot_HP;//À¶4²½±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t blue_5_robot_HP;//À¶5²½±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t blue_7_robot_HP;//À¶7ÉÚ±ø»úÆ÷ÈËÑªÁ¿
-			uint16_t blue_outpost_HP;//À¶·½Ç°ÉÚÕ¾ÑªÁ¿
-			uint16_t blue_base_HP;//À¶·½»ùµØÑªÁ¿
+			uint16_t red_1_robot_HP;//çº¢1è‹±é›„æœºå™¨äººè¡€é‡
+			uint16_t red_2_robot_HP;//çº¢2å·¥ç¨‹æœºå™¨äººè¡€é‡
+			uint16_t red_3_robot_HP;//çº¢3æ­¥å…µæœºå™¨äººè¡€é‡
+			uint16_t red_4_robot_HP;//çº¢4æ­¥å…µæœºå™¨äººè¡€é‡
+			uint16_t red_5_robot_HP;//çº¢5æ­¥å…µæœºå™¨äººè¡€é‡
+			uint16_t red_7_robot_HP;//çº¢7å“¨å…µæœºå™¨äººè¡€é‡
+			uint16_t red_outpost_HP;//çº¢æ–¹å‰å“¨ç«™è¡€é‡
+			uint16_t red_base_HP;//çº¢æ–¹åŸºåœ°è¡€é‡
+			uint16_t blue_1_robot_HP;//è“1è‹±é›„æœºå™¨äººè¡€é‡
+			uint16_t blue_2_robot_HP;//è“2å·¥ç¨‹æœºå™¨äººè¡€é‡
+			uint16_t blue_3_robot_HP;//è“3æ­¥å…µæœºå™¨äººè¡€é‡
+			uint16_t blue_4_robot_HP;//è“4æ­¥å…µæœºå™¨äººè¡€é‡
+			uint16_t blue_5_robot_HP;//è“5æ­¥å…µæœºå™¨äººè¡€é‡
+			uint16_t blue_7_robot_HP;//è“7å“¨å…µæœºå™¨äººè¡€é‡
+			uint16_t blue_outpost_HP;//è“æ–¹å‰å“¨ç«™è¡€é‡
+			uint16_t blue_base_HP;//è“æ–¹åŸºåœ°è¡€é‡
 		}  game_robot_HP_t;
 
-		//³¡µØÊÂ¼şÊı¾İ cmd:0x0101 ·¢ËÍÆµÂÊ£ºÊÂ¼ş¸Ä±äºó·¢ËÍ
+		//åœºåœ°äº‹ä»¶æ•°æ® cmd:0x0101 å‘é€é¢‘ç‡ï¼šäº‹ä»¶æ”¹å˜åå‘é€
 		struct
 		{
 			uint32_t event_data;
 		}event_data_t;
 
-		//·¢ËÍÆµÂÊ£º·ÉïÚ·¢Éäºó·¢ËÍ
+		//å‘é€é¢‘ç‡ï¼šé£é•–å‘å°„åå‘é€
 		struct {
-			uint8_t dart_belong;//·¢Éä·ÉïÚµÄ¶ÓÎé£»1£ººì·½·ÉïÚ£¬2£ºÀ¶·½·ÉïÚ
-			uint16_t stage_remaining_time;//·¢ÉäÊ±Ê£Óà±ÈÈüÊ±¼ä
+			uint8_t dart_belong;//å‘å°„é£é•–çš„é˜Ÿä¼ï¼›1ï¼šçº¢æ–¹é£é•–ï¼Œ2ï¼šè“æ–¹é£é•–
+			uint16_t stage_remaining_time;//å‘å°„æ—¶å‰©ä½™æ¯”èµ›æ—¶é—´
 		} ext_dart_status_t;
 
-		//²¹¸øÕ¾¶¯×÷±êÊ¶ cmd:0x0102¡£·¢ËÍÆµÂÊ£º¶¯×÷¸Ä±äºó·¢ËÍ, ·¢ËÍ·¶Î§£º¼º·½»úÆ÷ÈË
+		//è¡¥ç»™ç«™åŠ¨ä½œæ ‡è¯† cmd:0x0102ã€‚å‘é€é¢‘ç‡ï¼šåŠ¨ä½œæ”¹å˜åå‘é€, å‘é€èŒƒå›´ï¼šå·±æ–¹æœºå™¨äºº
 		struct {
 			uint8_t reserved;
 			uint8_t supply_robot_id;
@@ -181,83 +181,83 @@ public:
 			uint8_t supply_projectile_num;
 		} ext_supply_projectile_action_t;
 
-		//²ÃÅĞ¾¯¸æĞÅÏ¢ cmd_id:0x0104 ·¢ËÍÆµÂÊ£º¾¯¸æ·¢Éúºó·¢ËÍ
+		//è£åˆ¤è­¦å‘Šä¿¡æ¯ cmd_id:0x0104 å‘é€é¢‘ç‡ï¼šè­¦å‘Šå‘ç”Ÿåå‘é€
 		struct {
 			uint8_t level;
 			uint8_t foul_robot_id;
 			uint8_t count;
 		} referee_warning_t;
 
-		//·ÉïÚ·¢Éä¿Úµ¹¼ÆÊ± cmd_id:0x0105 ·¢ËÍÆµÂÊ£º1Hz ÖÜÆÚ·¢ËÍ£¬·¢ËÍ·¶Î§£º¼º·½»úÆ÷ÈË
+		//é£é•–å‘å°„å£å€’è®¡æ—¶ cmd_id:0x0105 å‘é€é¢‘ç‡ï¼š1Hz å‘¨æœŸå‘é€ï¼Œå‘é€èŒƒå›´ï¼šå·±æ–¹æœºå™¨äºº
 		struct {
 			uint8_t dart_remaining_time;
 			uint16_t dart_info;
 		}dart_dart_info_t;
 
-		//±ÈÈü»úÆ÷ÈË×´Ì¬ cmd:0x0201¡£·¢ËÍÆµÂÊ£º10Hz
+		//æ¯”èµ›æœºå™¨äººçŠ¶æ€ cmd:0x0201ã€‚å‘é€é¢‘ç‡ï¼š10Hz
 		struct {
-			uint8_t robot_id;//»úÆ÷ÈËid
-			uint8_t robot_level;//»úÆ÷ÈËµÈ¼¶
-			uint16_t current_HP;//»úÆ÷ÈËÊ£ÓàÑªÁ¿
-			uint16_t maximum_HP;//»úÆ÷ÈËÉÏÏŞÑªÁ¿
-			uint16_t shooter_barrel_cooling_value;//»úÆ÷ÈËÇ¹¿ÚÈÈÁ¿Ã¿ÃëÀäÈ´Öµ
-			uint16_t shooter_barrel_heat_limit;//»úÆ÷ÈËÇ¹¿ÚÈÈÁ¿ÉÏÏŞ
-			uint16_t chassis_power_limit{};//»úÆ÷ÈËµ×ÅÌ¹¦ÂÊÉÏÏŞ
-			uint8_t power_management_gimbal_output;//gimbal¿ÚÊÇ·ñÓĞÊä³ö
-			uint8_t power_management_chassis_output;//chassis¿ÚÊÇ·ñÓĞÊä³ö
-			uint8_t power_management_shooter_output;//shooter¿ÚÊÇ·ñÓĞÊä³ö
+			uint8_t robot_id;//æœºå™¨äººid
+			uint8_t robot_level;//æœºå™¨äººç­‰çº§
+			uint16_t current_HP;//æœºå™¨äººå‰©ä½™è¡€é‡
+			uint16_t maximum_HP;//æœºå™¨äººä¸Šé™è¡€é‡
+			uint16_t shooter_barrel_cooling_value;//æœºå™¨äººæªå£çƒ­é‡æ¯ç§’å†·å´å€¼
+			uint16_t shooter_barrel_heat_limit;//æœºå™¨äººæªå£çƒ­é‡ä¸Šé™
+			uint16_t chassis_power_limit{};//æœºå™¨äººåº•ç›˜åŠŸç‡ä¸Šé™
+			uint8_t power_management_gimbal_output;//gimbalå£æ˜¯å¦æœ‰è¾“å‡º
+			uint8_t power_management_chassis_output;//chassiså£æ˜¯å¦æœ‰è¾“å‡º
+			uint8_t power_management_shooter_output;//shooterå£æ˜¯å¦æœ‰è¾“å‡º
 		}robot_status_t;
 
-		//ÊµÊ±¹¦ÂÊÈÈÁ¿Êı¾İ cmd:0x0202¡£·¢ËÍÆµÂÊ£º50Hz
+		//å®æ—¶åŠŸç‡çƒ­é‡æ•°æ® cmd:0x0202ã€‚å‘é€é¢‘ç‡ï¼š50Hz
 		struct {
-			uint16_t chassis_voltage;//µ×ÅÌÊä³öµçÑ¹ µ¥Î»ºÁ·ü
-			uint16_t chassis_current;//µ×ÅÌÊä³öµçÁ÷ µ¥Î»ºÁ°²
-			float chassis_power;//µ×ÅÌÊä³ö¹¦ÂÊ µ¥Î»Íß
-			uint16_t chassis_power_buffer;//µ×ÅÌ¹¦ÂÊ»º³å
-			uint16_t shooter_17mm_1_barrel_heat;//1ºÅ17mmÇ¹¿ÚÈÈÁ¿
-			uint16_t shooter_17mm_2_barrel_heat;//2ºÅ17mmÇ¹¿ÚÈÈÁ¿
-			uint16_t shooter_42mm_barrel_heat;//42mmÇ¹¿ÚÈÈÁ¿
+			uint16_t chassis_voltage;//åº•ç›˜è¾“å‡ºç”µå‹ å•ä½æ¯«ä¼
+			uint16_t chassis_current;//åº•ç›˜è¾“å‡ºç”µæµ å•ä½æ¯«å®‰
+			float chassis_power;//åº•ç›˜è¾“å‡ºåŠŸç‡ å•ä½ç“¦
+			uint16_t chassis_power_buffer;//åº•ç›˜åŠŸç‡ç¼“å†²
+			uint16_t shooter_17mm_1_barrel_heat;//1å·17mmæªå£çƒ­é‡
+			uint16_t shooter_17mm_2_barrel_heat;//2å·17mmæªå£çƒ­é‡
+			uint16_t shooter_42mm_barrel_heat;//42mmæªå£çƒ­é‡
 		}power_heat_data_t;
 
-		//»úÆ÷ÈËÎ»ÖÃ cmd:0x0203¡£·¢ËÍÆµÂÊ£º10Hz
+		//æœºå™¨äººä½ç½® cmd:0x0203ã€‚å‘é€é¢‘ç‡ï¼š10Hz
 		struct {
-			float x;//Î»ÖÃx×ø±ê
-			float y;//Î»ÖÃy×ø±ê
-			float angle;//±¾»úÆ÷ÈË²âËÙÄ£¿éµÄ³¯Ïò£¬µ¥Î»£º¶È¡£Õı±±Îª 0 ¶È
+			float x;//ä½ç½®xåæ ‡
+			float y;//ä½ç½®yåæ ‡
+			float angle;//æœ¬æœºå™¨äººæµ‹é€Ÿæ¨¡å—çš„æœå‘ï¼Œå•ä½ï¼šåº¦ã€‚æ­£åŒ—ä¸º 0 åº¦
 		}robot_pos_t;
 
-		//»úÆ÷ÈËÔöÒæ cmd:0x0204 ·¢ËÍÆµÂÊ£º1Hz
+		//æœºå™¨äººå¢ç›Š cmd:0x0204 å‘é€é¢‘ç‡ï¼š1Hz
 		struct {
-			uint8_t recovery_buff;//»úÆ÷ÈË»ØÑªÔöÒæ£¨°Ù·Ö±È£¬ÖµÎª 10 ±íÊ¾Ã¿Ãë»Ö¸´ÑªÁ¿ÉÏÏŞµÄ 10%£©
-			uint8_t cooling_buff;//»úÆ÷ÈËÇ¹¿ÚÀäÈ´±¶ÂÊ£¨Ö±½ÓÖµ£¬ÖµÎª 5 ±íÊ¾ 5 ±¶ÀäÈ´
-			uint8_t defence_buff;//»úÆ÷ÈË·ÀÓùÔöÒæ£¨°Ù·Ö±È£¬ÖµÎª 50 ±íÊ¾ 50 % ·ÀÓùÔöÒæ£©
-			uint8_t vulnerability_buff;	//»úÆ÷ÈË¸º·ÀÓùÔöÒæ£¨°Ù·Ö±È£¬ÖµÎª 30 ±íÊ¾ - 30 % ·ÀÓùÔöÒæ£©
-			uint16_t attack_buff;//»úÆ÷ÈË¹¥»÷ÔöÒæ£¨°Ù·Ö±È£¬ÖµÎª 50 ±íÊ¾ 50 % ¹¥»÷ÔöÒæ£©
+			uint8_t recovery_buff;//æœºå™¨äººå›è¡€å¢ç›Šï¼ˆç™¾åˆ†æ¯”ï¼Œå€¼ä¸º 10 è¡¨ç¤ºæ¯ç§’æ¢å¤è¡€é‡ä¸Šé™çš„ 10%ï¼‰
+			uint8_t cooling_buff;//æœºå™¨äººæªå£å†·å´å€ç‡ï¼ˆç›´æ¥å€¼ï¼Œå€¼ä¸º 5 è¡¨ç¤º 5 å€å†·å´
+			uint8_t defence_buff;//æœºå™¨äººé˜²å¾¡å¢ç›Šï¼ˆç™¾åˆ†æ¯”ï¼Œå€¼ä¸º 50 è¡¨ç¤º 50 % é˜²å¾¡å¢ç›Šï¼‰
+			uint8_t vulnerability_buff;	//æœºå™¨äººè´Ÿé˜²å¾¡å¢ç›Šï¼ˆç™¾åˆ†æ¯”ï¼Œå€¼ä¸º 30 è¡¨ç¤º - 30 % é˜²å¾¡å¢ç›Šï¼‰
+			uint16_t attack_buff;//æœºå™¨äººæ”»å‡»å¢ç›Šï¼ˆç™¾åˆ†æ¯”ï¼Œå€¼ä¸º 50 è¡¨ç¤º 50 % æ”»å‡»å¢ç›Šï¼‰
 		}buff_t;
 
-		//¿ÕÖĞ»úÆ÷ÈËÄÜÁ¿×´Ì¬ cmd:0x0205 ·¢ËÍÆµÂÊ£º10Hz
+		//ç©ºä¸­æœºå™¨äººèƒ½é‡çŠ¶æ€ cmd:0x0205 å‘é€é¢‘ç‡ï¼š10Hz
 		struct
 		{
 			uint8_t airforce_status;
 			uint8_t time_remain;
 		}air_support_data_t;
 
-		//ÉËº¦×´Ì¬ cmd:0x0206 ·¢ËÍÆµÂÊ£ºÉËº¦·¢Éúºó·¢ËÍ
+		//ä¼¤å®³çŠ¶æ€ cmd:0x0206 å‘é€é¢‘ç‡ï¼šä¼¤å®³å‘ç”Ÿåå‘é€
 		struct
 		{
 			uint8_t armor_id;
 			uint8_t HP_deduction_reason;
 		}hurt_data_t;
 
-		//ÊµÊ±Éä»÷ĞÅÏ¢ cmd:0x0207 ·¢ËÍÆµÂÊ£ºÉä»÷ºó·¢ËÍ
+		//å®æ—¶å°„å‡»ä¿¡æ¯ cmd:0x0207 å‘é€é¢‘ç‡ï¼šå°„å‡»åå‘é€
 		struct {
 			uint8_t bullet_type;
 			uint8_t shooter_number;
-			uint8_t bullet_freq;//×Óµ¯ÉäÆµ µ¥Î»Hz
-			float bullet_speed;//×Óµ¯ÉäËÙ µ¥Î»m/s
+			uint8_t bullet_freq;//å­å¼¹å°„é¢‘ å•ä½Hz
+			float bullet_speed;//å­å¼¹å°„é€Ÿ å•ä½m/s
 		}shoot_data_t;
 
-		//×Óµ¯Ê£Óà·¢ÉäÊı¼°Ê£Óà½ğ±ÒÊı cmd:0x0208 ·¢ËÍÆµÂÊ£º10Hz ÖÜÆÚ·¢ËÍ£¬ËùÓĞ»úÆ÷ÈË·¢ËÍ
+		//å­å¼¹å‰©ä½™å‘å°„æ•°åŠå‰©ä½™é‡‘å¸æ•° cmd:0x0208 å‘é€é¢‘ç‡ï¼š10Hz å‘¨æœŸå‘é€ï¼Œæ‰€æœ‰æœºå™¨äººå‘é€
 		struct
 		{
 			uint16_t projectile_allowance_17mm;
@@ -265,22 +265,22 @@ public:
 			uint16_t remaining_gold_coin;
 		}projectile_allowance_t;
 
-		//»úÆ÷ÈË RFID ×´Ì¬ cmd0:x0209 ·¢ËÍÆµÂÊ£º1Hz£¬·¢ËÍ·¶Î§£ºµ¥Ò»»úÆ÷ÈË
+		//æœºå™¨äºº RFID çŠ¶æ€ cmd0:x0209 å‘é€é¢‘ç‡ï¼š1Hzï¼Œå‘é€èŒƒå›´ï¼šå•ä¸€æœºå™¨äºº
 		struct
 		{
 			uint32_t rfid_status;
 		}rfid_status_t;
 
-		//·ÉïÚ»úÆ÷ÈË¿Í»§¶ËÖ¸ÁîÊı¾İ cmd:0x020A ·¢ËÍÆµÂÊ£º10Hz£¬·¢ËÍ·¶Î§£ºµ¥Ò»»úÆ÷ÈË
+		//é£é•–æœºå™¨äººå®¢æˆ·ç«¯æŒ‡ä»¤æ•°æ® cmd:0x020A å‘é€é¢‘ç‡ï¼š10Hzï¼Œå‘é€èŒƒå›´ï¼šå•ä¸€æœºå™¨äºº
 		struct
 		{
-			uint8_t dart_launch_opening_status;//µ±Ç°·ÉïÚ·¢ÉäÕ¾µÄ×´Ì¬
+			uint8_t dart_launch_opening_status;//å½“å‰é£é•–å‘å°„ç«™çš„çŠ¶æ€
 			uint8_t reserved;
-			uint16_t target_change_time;//ÇĞ»»»÷´òÄ¿±êÊ±µÄ±ÈÈüÊ£ÓàÊ±¼ä
-			uint16_t latest_launch_cmd_time;//×îºóÒ»´Î²Ù×÷ÊÖÈ·¶¨·¢ÉäÖ¸ÁîÊ±µÄ±ÈÈüÊ£ÓàÊ±¼ä£¬µ¥Î»£ºÃë£¬³õÊ¼ÖµÎª 0¡£
+			uint16_t target_change_time;//åˆ‡æ¢å‡»æ‰“ç›®æ ‡æ—¶çš„æ¯”èµ›å‰©ä½™æ—¶é—´
+			uint16_t latest_launch_cmd_time;//æœ€åä¸€æ¬¡æ“ä½œæ‰‹ç¡®å®šå‘å°„æŒ‡ä»¤æ—¶çš„æ¯”èµ›å‰©ä½™æ—¶é—´ï¼Œå•ä½ï¼šç§’ï¼Œåˆå§‹å€¼ä¸º 0ã€‚
 		}dart_client_cmd_t;
 
-		//»úÆ÷ÈË×ø±ê cmd:0x020B
+		//æœºå™¨äººåæ ‡ cmd:0x020B
 		struct
 		{
 			float hero_x;
@@ -295,7 +295,7 @@ public:
 			float standard_5_y;
 		}ground_robot_position_t;
 
-		//¶ÔÃæ»úÆ÷ÈË±ê¼Ç×´Ì¬ cmd:0x020C
+		//å¯¹é¢æœºå™¨äººæ ‡è®°çŠ¶æ€ cmd:0x020C
 		struct
 		{
 			uint8_t mark_hero_progress;
@@ -306,13 +306,13 @@ public:
 			uint8_t mark_sentry_progress;
 		}radar_mark_data_t;
 
-		//Ô¶³Ì¶Ò»»µ¯Íè¼°¸´»îÊıÁ¿ cmd:0x020D
+		//è¿œç¨‹å…‘æ¢å¼¹ä¸¸åŠå¤æ´»æ•°é‡ cmd:0x020D
 		struct
 		{
 			uint32_t sentry_info;
 		} sentry_info_t;
 
-		//Ë«±¶Ò×ÉË×´Ì¬ cmd:0x020E
+		//åŒå€æ˜“ä¼¤çŠ¶æ€ cmd:0x020E
 		struct
 		{
 			uint8_t radar_info;
@@ -372,22 +372,22 @@ public:
 	{
 		graphic_data_struct_t Graph_Control;
 		uint8_t show_Data[30] = {};
-	} string_data_struct_t;                  //´òÓ¡×Ö·û´®Êı¾İ
+	} string_data_struct_t;                  //æ‰“å°å­—ç¬¦ä¸²æ•°æ®
 
 	//-----------------------------------------------------------
 
 	typedef __packed  struct
 	{
-		uint8_t  sof = 0xA5;//Êı¾İÖ¡ÆğÊ¼×Ö½Ú£¬¹Ì¶¨ÖµÎª0x05
-		uint16_t data_length; //Êı¾İÖĞdataµÄ³¤¶È
-		uint8_t  seq;  //°üÖ¡Í·
-		uint8_t  crc8;  //Ö¡Í·CRC8Ğ£Ñé
+		uint8_t  sof = 0xA5;//æ•°æ®å¸§èµ·å§‹å­—èŠ‚ï¼Œå›ºå®šå€¼ä¸º0x05
+		uint16_t data_length; //æ•°æ®ä¸­dataçš„é•¿åº¦
+		uint8_t  seq;  //åŒ…å¸§å¤´
+		uint8_t  crc8;  //å¸§å¤´CRC8æ ¡éªŒ
 
 	} frame_header_t;
 	typedef __packed  struct
 	{
 		frame_header_t   						txFrameHeader;
-		uint16_t								CMD;//ÃüÁî×Öid
+		uint16_t								CMD;//å‘½ä»¤å­—id
 		robot_interaction_data_t				txID;
 		uint16_t		 						FrameTail;
 	}CommunatianData_graphic_t;

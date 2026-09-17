@@ -6,11 +6,11 @@
 #include"label.h"
 #include "can.h"
 
-constexpr auto MAXHIGH = 0.35;//ÂÖÍÈ×î¸ßÉìÕ¹¸ß¶È£¬´ı²â
+constexpr auto MAXHIGH = 0.35;//è½®è…¿æœ€é«˜ä¼¸å±•é«˜åº¦ï¼Œå¾…æµ‹
 constexpr auto MINHIGH = 0.133;
-constexpr auto MAXROLL = 15;//ÂÖÍÈROLL·¶Î§ÏŞÖÆ
+constexpr auto MAXROLL = 15;//è½®è…¿ROLLèŒƒå›´é™åˆ¶
 #define INIT_ANGLE_F 3.979350f//3.595378198//180+26 3.665191429
-//#define INIT_ANGLE_B -0.802851442f//-0.48869218//-22¡ã -0.3839724;-0.523598775598//-30¡ã//1.25423324
+//#define INIT_ANGLE_B -0.802851442f//-0.48869218//-22Â° -0.3839724;-0.523598775598//-30Â°//1.25423324
 #define INIT_ANGLE_B -0.884955f
 #define CMD_MOTOR_MODE      0x01
 #define CMD_RESET_MODE      0x02
@@ -27,7 +27,7 @@ constexpr auto MAXROLL = 15;//ÂÖÍÈROLL·¶Î§ÏŞÖÆ
 #define KD_MAX 5.0f
 #define C_MAX 40.f
 #define C_MIN -40.f
-#define T_MIN -18.0f    //Á¦¾Ø
+#define T_MIN -18.0f    //åŠ›çŸ©
 #define T_MAX 18.0f
 #define LIMIT_MIN_MAX(x,min,max) (x) = (((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
 
@@ -38,13 +38,13 @@ enum { DM_ID1 = 0x01, DM_ID2, DM_ID3, DM_ID4, DM_ID5 };
 enum  POSITION { L_F, L_B, R_F, R_B, F_B };
 enum  FUCTION_MODE { MIT, SPEED, P_S };
 typedef enum {
-	CAN_PACKET_SET_DUTY = 0, //Õ¼¿Õ±ÈÄ£Ê½
-	CAN_PACKET_SET_CURRENT, //µçÁ÷»·Ä£Ê½
-	CAN_PACKET_SET_CURRENT_BRAKE, // µçÁ÷É²³µÄ£Ê½
-	CAN_PACKET_SET_RPM, // ×ªËÙÄ£Ê½
-	CAN_PACKET_SET_POS, // Î»ÖÃÄ£Ê½
-	CAN_PACKET_SET_ORIGIN_HERE, //ÉèÖÃÔ­µãÄ£Ê½
-	CAN_PACKET_SET_POS_SPD, //Î»ÖÃËÙ¶È»·Ä£Ê½
+	CAN_PACKET_SET_DUTY = 0, //å ç©ºæ¯”æ¨¡å¼
+	CAN_PACKET_SET_CURRENT, //ç”µæµç¯æ¨¡å¼
+	CAN_PACKET_SET_CURRENT_BRAKE, // ç”µæµåˆ¹è½¦æ¨¡å¼
+	CAN_PACKET_SET_RPM, // è½¬é€Ÿæ¨¡å¼
+	CAN_PACKET_SET_POS, // ä½ç½®æ¨¡å¼
+	CAN_PACKET_SET_ORIGIN_HERE, //è®¾ç½®åŸç‚¹æ¨¡å¼
+	CAN_PACKET_SET_POS_SPD, //ä½ç½®é€Ÿåº¦ç¯æ¨¡å¼
 } CAN_PACKET_ID;
 
 class DMMOTOR
@@ -54,38 +54,38 @@ public:
 	FUCTION_MODE function;
 	POSITION position;
 
-	float angle[2]{}, setAngle{}, deltaAngle{};//ÈÏÎªÊÇ°²×°µç»úÊ±£¬³õÊ¼×ËÌ¬µÄµç»úÓëÁ¬¸Ë¼Ğ½Ç£»
-	float pos{}, setPos{};//×ª×ÓÎ»ÖÃ£¬Ò²ÊÇ·´À¡»ØÀ´µÄ½Ç¶È
+	float angle[2]{}, setAngle{}, deltaAngle{};//è®¤ä¸ºæ˜¯å®‰è£…ç”µæœºæ—¶ï¼Œåˆå§‹å§¿æ€çš„ç”µæœºä¸è¿æ†å¤¹è§’ï¼›
+	float pos{}, setPos{};//è½¬å­ä½ç½®ï¼Œä¹Ÿæ˜¯åé¦ˆå›æ¥çš„è§’åº¦
 	float curSpeed, setSpeed;
 	float current, setCurrent;
 	float torque, setTorque;
 	float Kp = 10.f;
 	float Kd = 0.6f;
 
-	float uint_to_float(int x_int, float x_min, float x_max, int bits);//¼ÆËãÓÃº¯Êı
+	float uint_to_float(int x_int, float x_min, float x_max, int bits);//è®¡ç®—ç”¨å‡½æ•°
 	int float_to_uint(float x, float x_min, float x_max, int bits);
 
-	void  CanComm_ControlCmd(CAN hcan, uint8_t cmd, uint32_t id);//µç»úÄ£Ê½ÉèÖÃ
-	void  ZeroPosition(CAN hcan, uint32_t id);//Ğ£×¼ÁãÎ»ÖÃ
+	void  CanComm_ControlCmd(CAN hcan, uint8_t cmd, uint32_t id);//ç”µæœºæ¨¡å¼è®¾ç½®
+	void  ZeroPosition(CAN hcan, uint32_t id);//æ ¡å‡†é›¶ä½ç½®
 
 	void  Motor_Start(CAN hcan, uint32_t id);
-	void DMmotorinit();//³õÊ¼»¯£¬Ê¹ÄÜËùÓĞµç»ú
+	void DMmotorinit();//åˆå§‹åŒ–ï¼Œä½¿èƒ½æ‰€æœ‰ç”µæœº
 
-	//Æô¶¯µç»ú»áÉèÖÃµç»úÄ£Ê½²¢ÁãÎ»Ğ£×¼
-	void  Motor_Stop(CAN hcan, uint32_t id);//µç»úÊ§Á¦
+	//å¯åŠ¨ç”µæœºä¼šè®¾ç½®ç”µæœºæ¨¡å¼å¹¶é›¶ä½æ ¡å‡†
+	void  Motor_Stop(CAN hcan, uint32_t id);//ç”µæœºå¤±åŠ›
 
-	DMMOTOR& State_Decode(CAN hcan, uint8_t odata[][8]);//½âÂë²¢½ÓÊÕÊı¾İ
-	void DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata);//µçÁ÷¼ÆËã£¬²»°üÀ¨·¢ËÍ
-	void DMmotor_transmit(uint32_t id);//Ê¹ÄÜ²¢·¢ËÍ¿ØÖÆÊı¾İ
+	DMMOTOR& State_Decode(CAN hcan, uint8_t odata[][8]);//è§£ç å¹¶æ¥æ”¶æ•°æ®
+	void DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata);//ç”µæµè®¡ç®—ï¼Œä¸åŒ…æ‹¬å‘é€
+	void DMmotor_transmit(uint32_t id);//ä½¿èƒ½å¹¶å‘é€æ§åˆ¶æ•°æ®
 
 	void SetTorque(float settorque);
 	float GetPosition();
 	float GetSpeed();
 	float GetTorque();
 
-	//¶¼ÊÇ¶Ôµ¥¸öµç»ú½øĞĞ¿ØÖÆ£¬ÒªÓĞID 
+	//éƒ½æ˜¯å¯¹å•ä¸ªç”µæœºè¿›è¡Œæ§åˆ¶ï¼Œè¦æœ‰ID 
 
-	DMMOTOR(const uint32_t ID, FUCTION_MODE function, POSITION position) :ID(ID), function(function), position(position) {};//¶¨Òå½Ó¿Ú
+	DMMOTOR(const uint32_t ID, FUCTION_MODE function, POSITION position) :ID(ID), function(function), position(position) {};//å®šä¹‰æ¥å£
 
 };
 

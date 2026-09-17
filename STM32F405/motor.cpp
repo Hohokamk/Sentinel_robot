@@ -2,7 +2,7 @@
 #include "gpio.h"
 #include "HTmotor.h"
 #include "imu.h"
-#define DEG_TO_RAD 0.017453292f  // ¦Ğ / 180
+#define DEG_TO_RAD 0.017453292f  // Ï€ / 180
 Motor::Motor(const motor_type type, const motor_mode mode, const function_type function, const uint32_t id, PID _speed, PID _position, PID _speed2)
 	: ID(id)
 	, type(type)
@@ -136,15 +136,15 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 	GetDistanceFromMechanicalAngle();
 	angle[pre] = angle[now];
 	current = setrange(current, maxcurrent);
-	odata[trainsmit_or_receive_ID * 2] = (current & 0xff00) >> 8;//¸ß°ËÎ»
+	odata[trainsmit_or_receive_ID * 2] = (current & 0xff00) >> 8;//é«˜å…«ä½
 	odata[trainsmit_or_receive_ID * 2 + 1] = current & 0x00ff;
 }
 void Motor::recorded_the_Laps() {
 	int16_t delta = angle[now] - angle[pre];
-	// ´¦Àí»ØÈÆ£ºË³Ê±Õë
+	// å¤„ç†å›ç»•ï¼šé¡ºæ—¶é’ˆ
 	if (delta > 8192 / 2)
 		delta -= 8192;
-	// ´¦Àí»ØÈÆ£ºÄæÊ±Õë
+	// å¤„ç†å›ç»•ï¼šé€†æ—¶é’ˆ
 	else if (delta < -8192 / 2)
 		delta += 8192;
 
@@ -156,7 +156,7 @@ uint8_t initial_cnt=0;
 void Motor::GetDistanceFromMechanicalAngle() {
 	if (initial_cnt<5)
 	initial_cnt++;
-	distance=(6.2831853f/ 8192.0f)*sum_angle * (WHEEL_RADIUS_MM / GEAR_RATIO)-initial_x;  // µ¥Î»£ºmm
+	distance=(6.2831853f/ 8192.0f)*sum_angle * (WHEEL_RADIUS_MM / GEAR_RATIO)-initial_x;  // å•ä½ï¼šmm
 
 	if(initial_cnt<3)
 	initial_x = distance;

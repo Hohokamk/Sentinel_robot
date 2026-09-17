@@ -15,7 +15,7 @@ void PARAMETER::Init()
 
 
 /*
-定义任务句柄
+瀹氫箟浠诲姟鍙ユ焺
 */
 TaskHandle_t StartTask_Handler;
 TaskHandle_t LedTask_Handler;

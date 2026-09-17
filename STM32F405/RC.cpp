@@ -151,7 +151,7 @@ void RC::RC_Control() {
 void RC::Decode()
 {
 	if (queueHandler == NULL || *queueHandler == NULL) {
-		return;  // »òÕß±¨´í
+		return;  // æˆ–è€…æŠ¥é”™
 	}
 	else {
 		pd_Rx = xQueueReceive(*queueHandler, m_frame, NULL);
@@ -181,8 +181,8 @@ void RC::Decode()
 	pc.press_l = m_frame[12];
 	pc.press_r = m_frame[13];
 
-	pc.key_h = m_frame[15];//°´¼üµÄ¸ßÎ»²¿·ÖR F G Z X C 
-	pc.key_l = m_frame[14];//°´¼üµÄµÍ8Î» W S A D SHIFT CTRL Q E
+	pc.key_h = m_frame[15];//æŒ‰é”®çš„é«˜ä½éƒ¨åˆ†R F G Z X C 
+	pc.key_l = m_frame[14];//æŒ‰é”®çš„ä½8ä½ W S A D SHIFT CTRL Q E
 
 }
 

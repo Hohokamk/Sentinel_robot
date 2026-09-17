@@ -15,23 +15,23 @@ extern float Kd = 0.6;
 extern int start_flag;
 void TASK::Init()
 {
-	//´´½¨¿ªÊ¼ÈÎÎñ
-	xTaskCreate((TaskFunction_t)start_task,            //ÈÎÎñº¯Êı
-		(const char*)"start_task",          //ÈÎÎñÃû³Æ
-		(uint16_t)START_STK_SIZE,        //ÈÎÎñ¶ÑÕ»´óĞ¡
-		(void*)NULL,                  //´«µİ¸øÈÎÎñº¯ÊıµÄ²ÎÊı
-		(UBaseType_t)START_TASK_PRIO,       //ÈÎÎñÓÅÏÈ¼¶
-		(TaskHandle_t*)&StartTask_Handler);   //ÈÎÎñ¾ä±ú              
-	vTaskStartScheduler();          //¿ªÆôÈÎÎñµ÷¶È
+	//åˆ›å»ºå¼€å§‹ä»»åŠ¡
+	xTaskCreate((TaskFunction_t)start_task,            //ä»»åŠ¡å‡½æ•°
+		(const char*)"start_task",          //ä»»åŠ¡åç§°
+		(uint16_t)START_STK_SIZE,        //ä»»åŠ¡å †æ ˆå¤§å°
+		(void*)NULL,                  //ä¼ é€’ç»™ä»»åŠ¡å‡½æ•°çš„å‚æ•°
+		(UBaseType_t)START_TASK_PRIO,       //ä»»åŠ¡ä¼˜å…ˆçº§
+		(TaskHandle_t*)&StartTask_Handler);   //ä»»åŠ¡å¥æŸ„              
+	vTaskStartScheduler();          //å¼€å¯ä»»åŠ¡è°ƒåº¦
 }
 
 /*
-¿ªÊ¼ÈÎÎñÈÎÎñº¯Êı
+å¼€å§‹ä»»åŠ¡ä»»åŠ¡å‡½æ•°
 */
 void start_task(void* pvParameters)
 {
-	taskENTER_CRITICAL();           //½øÈëÁÙ½çÇø
-	//´´½¨ÈÎÎñ
+	taskENTER_CRITICAL();           //è¿›å…¥ä¸´ç•ŒåŒº
+	//åˆ›å»ºä»»åŠ¡
 
 	xTaskCreate((TaskFunction_t)ArmTask,
 		(const char*)"ArmTask",
@@ -68,8 +68,8 @@ void start_task(void* pvParameters)
 		(UBaseType_t)CONTROL_TASK_PRIO,
 		(TaskHandle_t*)&ControlTask_Handler);
 
-	vTaskDelete(StartTask_Handler); //É¾³ı¿ªÊ¼ÈÎÎñ
-	taskEXIT_CRITICAL();            //ÍË³öÁÙ½çÇø
+	vTaskDelete(StartTask_Handler); //åˆ é™¤å¼€å§‹ä»»åŠ¡
+	taskEXIT_CRITICAL();            //é€€å‡ºä¸´ç•ŒåŒº
 }
 int CNT = 0;
 void MotorUpdateTask(void* pvParameters)
@@ -87,7 +87,7 @@ void MotorUpdateTask(void* pvParameters)
 			.DMmotor_Ontimer(can2, DMmotor[1].Kp, DMmotor[1].Kd, can2.jointpdata[0]);
 
 
-	vTaskDelayUntil(&xlastWakeTime, pdMS_TO_TICKS(2));//¿ªÊ¼Ö´ĞĞ¸ÃÈÎÎñÖ®ºó1msÔÙÖ´ĞĞ¸ÃÈÎÎñ
+	vTaskDelayUntil(&xlastWakeTime, pdMS_TO_TICKS(2));//å¼€å§‹æ‰§è¡Œè¯¥ä»»åŠ¡ä¹‹å1mså†æ‰§è¡Œè¯¥ä»»åŠ¡
 }
 }
 
@@ -114,7 +114,7 @@ void CanTransimtTask(void* pvParameters)
 			break;
 		}
 		
-		vTaskDelayUntil(&xlastWakeTime1, pdMS_TO_TICKS(1));//¿ªÊ¼Ö´ĞĞ¸ÃÈÎÎñÖ®ºó1msÔÙÖ´ĞĞ¸ÃÈÎÎñ
+		vTaskDelayUntil(&xlastWakeTime1, pdMS_TO_TICKS(1));//å¼€å§‹æ‰§è¡Œè¯¥ä»»åŠ¡ä¹‹å1mså†æ‰§è¡Œè¯¥ä»»åŠ¡
 
 	}
 }
@@ -148,7 +148,7 @@ void ArmTask(void* pvParameters)
 {
 	while (true)
 	{
-		//³õÊ¼»¯´ïÃîµç»ú
+		//åˆå§‹åŒ–è¾¾å¦™ç”µæœº
 		DMmotor[0].DMmotorinit();
 		power.Send();
 		vTaskDelay(100);

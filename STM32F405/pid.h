@@ -23,7 +23,7 @@ public:
 		m_Td = Td;
 		m_alpha = alpha;
 	}
-	float Filter(float delta)      //ÂË²¨£¬È¡Æ½¾ùÖµ
+	float Filter(float delta)      //æ»¤æ³¢ï¼Œå–å¹³å‡å€¼
 	{
 		float sum = 0;
 		m_filter[m_filterindex++] = delta;
@@ -32,7 +32,7 @@ public:
 			sum += m_filter[t];
 		return sum / static_cast<float>(FILTER);
 	}
-	float Delta(float error)             //ÔöÁ¿Ê½PID
+	float Delta(float error)             //å¢é‡å¼PID
 	{
 		m_error[LLAST] = m_error[LAST] * 0.92f;
 		m_error[LAST] = m_error[NOW] * 0.92f;
@@ -45,7 +45,7 @@ public:
 		m_error[NOW] = error;
 		m_error[INTEGRATE] += m_error[NOW];
 		m_error[INTEGRATE] = std::max(std::min(m_error[INTEGRATE], max_limit), -max_limit);
-		//²»ÍêÈ«Î¢·Ö
+		//ä¸å®Œå…¨å¾®åˆ†
 		this->m_lderivative = m_Td * (1.f - m_alpha) * (m_error[NOW] - m_error[LAST]) + m_alpha * m_lderivative;
 		const float result = this->m_error[NOW] * this->m_Kp + this->m_error[INTEGRATE] * this->m_Ti + this->m_lderivative;
 		m_error[LAST] = m_error[NOW];
@@ -56,7 +56,7 @@ public:
 		m_error[NOW] = error;
 		m_error[INTEGRATE] += m_error[NOW];
 		m_error[INTEGRATE] = std::max(std::min(m_error[INTEGRATE], 1000.f), -1000.f);
-		//²»ÍêÈ«Î¢·Ö
+		//ä¸å®Œå…¨å¾®åˆ†
 		this->m_lderivative = m_Td * (1.f - m_alpha) * (m_error[NOW] - m_error[LAST]) + m_alpha * m_lderivative;
 		const float result = this->m_error[NOW] * this->m_Kp + this->m_error[INTEGRATE] * this->m_Ti + this->m_lderivative;
 		m_error[LAST] = m_error[NOW];

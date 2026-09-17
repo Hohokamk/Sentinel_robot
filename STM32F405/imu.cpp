@@ -11,7 +11,7 @@ void IMU::Init(UART* huart, USART_TypeDef* Instance, const uint32_t BaudRate, IM
 void IMU::Decode()
 {
 	if (queueHandler == NULL || *queueHandler == NULL) {
-		return;  // »òÕß±¨´í
+		return;  // æˆ–è€…æŠ¥é”™
 	}
 	else {
 		pd_Rx = xQueueReceive(*queueHandler, rxData, NULL);

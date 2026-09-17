@@ -16,26 +16,26 @@ void buffer_append_int16(uint8_t* buffer, int16_t number, int16_t* index) {
 	buffer[(*index)++] = number;
 }
 
-DMMOTOR& DMMOTOR::State_Decode(CAN hcan, uint8_t idata[][8])//½ÓÊÕ·´À¡Êı¾İ
+DMMOTOR& DMMOTOR::State_Decode(CAN hcan, uint8_t idata[][8])//æ¥æ”¶åé¦ˆæ•°æ®
 {
-	//¸¡µãĞÍÊı¾İ
-	//receive_data[0]=µç»úid
+	//æµ®ç‚¹å‹æ•°æ®
+	//receive_data[0]=ç”µæœºid
 	uint8_t id = ID - 0x01;
 	int direct = 0;
 	int tmp_value = 0;
-	tmp_value = (idata[id][1] << 8) | (idata[id][2]);//µç»úÎ»ÖÃ
-	pos = uint_to_float(tmp_value, P_MIN, P_MAX, 16);//¸¡µãĞÍ
-	tmp_value = (idata[id][3] << 4) | (idata[id][4] >> 4);//×ªËÙ
-	curSpeed = uint_to_float(tmp_value, V_MIN, V_MAX, 12);//×ª¸¡µãĞÍ
+	tmp_value = (idata[id][1] << 8) | (idata[id][2]);//ç”µæœºä½ç½®
+	pos = uint_to_float(tmp_value, P_MIN, P_MAX, 16);//æµ®ç‚¹å‹
+	tmp_value = (idata[id][3] << 4) | (idata[id][4] >> 4);//è½¬é€Ÿ
+	curSpeed = uint_to_float(tmp_value, V_MIN, V_MAX, 12);//è½¬æµ®ç‚¹å‹
 	tmp_value = (idata[id][5]) | ((idata[id][4] & 0x0f) << 8);
 	current = uint_to_float(tmp_value, C_MIN, C_MAX, 12);
-	torque = current * KT;//£¨Á¦¾Ø=µçÁ÷*×ª¾Ø³£Êı£¬±¾²úÆ·×ª¾Ø³£ÊıÎª 1.4Nm/A£©
+	torque = current * KT;//ï¼ˆåŠ›çŸ©=ç”µæµ*è½¬çŸ©å¸¸æ•°ï¼Œæœ¬äº§å“è½¬çŸ©å¸¸æ•°ä¸º 1.4Nm/Aï¼‰
 }
 
 
 void DMMOTOR::DMmotor_transmit(uint32_t id)
 {
-	//CanComm_ControlCmd(can1, CMD_RESET_MODE, id + MOTOR_MODE);//µç»úÊ§Á¦
+	//CanComm_ControlCmd(can1, CMD_RESET_MODE, id + MOTOR_MODE);//ç”µæœºå¤±åŠ›
 	can2.Transmit(id + MOTOR_MODE, can2.jointpdata[id - 1], 8);
 }
 
@@ -65,29 +65,29 @@ float DMMOTOR::GetTorque()
 	return torque;
 }
 
-void  DMMOTOR::CanComm_ControlCmd(CAN hcan, uint8_t cmd, uint32_t id)//Ê¹ÄÜÖ¡
+void  DMMOTOR::CanComm_ControlCmd(CAN hcan, uint8_t cmd, uint32_t id)//ä½¿èƒ½å¸§
 {
 	uint8_t buf[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
 	switch (cmd)
 	{
 	case CMD_MOTOR_MODE:
-		buf[7] = 0xFC;//½øÈëµç»ú
+		buf[7] = 0xFC;//è¿›å…¥ç”µæœº
 		break;
 
 	case CMD_RESET_MODE:
-		buf[7] = 0xFD;//ÍË³öµç»ú
+		buf[7] = 0xFD;//é€€å‡ºç”µæœº
 		break;
 
 	case CMD_ZERO_POSITION:
-		buf[7] = 0xFE;//±£´æÎ»ÖÃÁãµã
+		buf[7] = 0xFE;//ä¿å­˜ä½ç½®é›¶ç‚¹
 		break;
 
 	case CMD_CLEAR_MODE:
-		buf[7] = 0xFB;//Çå³ı´íÎó
+		buf[7] = 0xFB;//æ¸…é™¤é”™è¯¯
 		break;
 
 	default:
-		return; /* Ö±½ÓÍË³öº¯Êı */
+		return; /* ç›´æ¥é€€å‡ºå‡½æ•° */
 	}
 	hcan.Transmit(id, buf, 8);
 }
@@ -108,11 +108,11 @@ int DMMOTOR::float_to_uint(float x, float x_min, float x_max, int bits)
 
 void DMMOTOR::DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata)
 {
-	unsigned char* P = (unsigned char*)&setPos; // ¶¨ÒåÒ»¸öÎŞ·ûºÅ×Ö·ûĞÍÖ¸Õëp²¢Ö¸ÏòfµÄµØÖ·
-	unsigned char* V = (unsigned char*)&setSpeed; // ¶¨ÒåÒ»¸öÎŞ·ûºÅ×Ö·ûĞÍÖ¸Õëp²¢Ö¸ÏòfµÄµØÖ·
+	unsigned char* P = (unsigned char*)&setPos; // å®šä¹‰ä¸€ä¸ªæ— ç¬¦å·å­—ç¬¦å‹æŒ‡é’ˆpå¹¶æŒ‡å‘fçš„åœ°å€
+	unsigned char* V = (unsigned char*)&setSpeed; // å®šä¹‰ä¸€ä¸ªæ— ç¬¦å·å­—ç¬¦å‹æŒ‡é’ˆpå¹¶æŒ‡å‘fçš„åœ°å€
 	uint8_t id = ID - 0x01;
-	uint32_t p = 0, v = 0, kp = 0, kd = 0, t = 0;//Î»ÖÃ¸ø¶¨£¬ËÙ¶È¸ø¶¨£¬Î»ÖÃ±ÈÀıÏµÊı£¬Î»ÖÃÎ¢·ÖÏµÊı£¬×ª¾Ø¸ø¶¨Öµ
-	/* ÏŞÖÆÊäÈëµÄ²ÎÊıÔÚ¶¨ÒåµÄ·¶Î§ÄÚ */
+	uint32_t p = 0, v = 0, kp = 0, kd = 0, t = 0;//ä½ç½®ç»™å®šï¼Œé€Ÿåº¦ç»™å®šï¼Œä½ç½®æ¯”ä¾‹ç³»æ•°ï¼Œä½ç½®å¾®åˆ†ç³»æ•°ï¼Œè½¬çŸ©ç»™å®šå€¼
+	/* é™åˆ¶è¾“å…¥çš„å‚æ•°åœ¨å®šä¹‰çš„èŒƒå›´å†… */
 	LIMIT_MIN_MAX(setPos, P_MIN, P_MAX);
 	LIMIT_MIN_MAX(setSpeed, V_MIN, V_MAX);
 	LIMIT_MIN_MAX(f_kp, KP_MIN, KP_MAX);
@@ -121,13 +121,13 @@ void DMMOTOR::DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata)
 	switch (MOTOR_MODE)
 	{
 	case 0x00:
-		/* ¸ù¾İĞ­Òé£¬¶Ôfloat²ÎÊı½øĞĞ×ª»» */
-		p = float_to_uint(setPos, P_MIN, P_MAX, 16);//Î»ÖÃÁ½¸ö×Ö½Ú
-		v = float_to_uint(setSpeed, V_MIN, V_MAX, 12);//ËÙ¶È12Î»
-		kp = float_to_uint(f_kp, KP_MIN, KP_MAX, 12);//±ÈÀıÏµÊı12Î»
-		kd = float_to_uint(f_kd, KD_MIN, KD_MAX, 12);//ËÙ¶ÈÏµÊı12Î»
-		t = float_to_uint(setTorque, T_MIN, T_MAX, 12);//Ç°À¡Á¦¾Ø£¨µçÁ÷£©
-		/* ¸ù¾İ´«ÊäĞ­Òé£¬°ÑÊı¾İ×ª»»ÎªCANÃüÁîÊı¾İ×Ö¶Î²¢´æÈëÊä³ö»º³åÇø*/
+		/* æ ¹æ®åè®®ï¼Œå¯¹floatå‚æ•°è¿›è¡Œè½¬æ¢ */
+		p = float_to_uint(setPos, P_MIN, P_MAX, 16);//ä½ç½®ä¸¤ä¸ªå­—èŠ‚
+		v = float_to_uint(setSpeed, V_MIN, V_MAX, 12);//é€Ÿåº¦12ä½
+		kp = float_to_uint(f_kp, KP_MIN, KP_MAX, 12);//æ¯”ä¾‹ç³»æ•°12ä½
+		kd = float_to_uint(f_kd, KD_MIN, KD_MAX, 12);//é€Ÿåº¦ç³»æ•°12ä½
+		t = float_to_uint(setTorque, T_MIN, T_MAX, 12);//å‰é¦ˆåŠ›çŸ©ï¼ˆç”µæµï¼‰
+		/* æ ¹æ®ä¼ è¾“åè®®ï¼ŒæŠŠæ•°æ®è½¬æ¢ä¸ºCANå‘½ä»¤æ•°æ®å­—æ®µå¹¶å­˜å…¥è¾“å‡ºç¼“å†²åŒº*/
 
 		odata[0] = p >> 8;
 		odata[1] = p & 0xFF;
@@ -148,11 +148,11 @@ void DMMOTOR::DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata)
 		odata[5] = V[1];
 		odata[6] = V[2];
 		odata[7] = V[3];
-		///* ¸ù¾İĞ­Òé£¬¶Ôfloat²ÎÊı½øĞĞ×ª»» */
-		//ÏÂÃæÕâÖÖ×ª»»·½Ê½´æÔÚÎÊÌâ£¬Áô´ıÒÔºó½â¾ö£¬ÉÏÃæ·½·¨¿ÉÓÃ
+		///* æ ¹æ®åè®®ï¼Œå¯¹floatå‚æ•°è¿›è¡Œè½¬æ¢ */
+		//ä¸‹é¢è¿™ç§è½¬æ¢æ–¹å¼å­˜åœ¨é—®é¢˜ï¼Œç•™å¾…ä»¥åè§£å†³ï¼Œä¸Šé¢æ–¹æ³•å¯ç”¨
 		//p = float_to_uint(setPos, P_MIN, P_MAX, 32);
 		//v = float_to_uint(setSpeed, V_MIN, V_MAX, 32);
-		///* ¸ù¾İ´«ÊäĞ­Òé£¬°ÑÊı¾İ×ª»»ÎªCANÃüÁîÊı¾İ×Ö¶Î²¢´æÈëÊä³ö»º³åÇø*/
+		///* æ ¹æ®ä¼ è¾“åè®®ï¼ŒæŠŠæ•°æ®è½¬æ¢ä¸ºCANå‘½ä»¤æ•°æ®å­—æ®µå¹¶å­˜å…¥è¾“å‡ºç¼“å†²åŒº*/
 		//odata[id][0] = p & 0xff;
 		//odata[id][1] = (p >> 8) & 0xff;
 		//odata[id][2] = (p >> 16) & 0xff;
@@ -167,6 +167,6 @@ void DMMOTOR::DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata)
 		break;
 
 	default:
-		return; /* Ö±½ÓÍË³öº¯Êı */
+		return; /* ç›´æ¥é€€å‡ºå‡½æ•° */
 	}
 }

@@ -40,7 +40,7 @@ void TIM::MspPostInit(const gpio r) const
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	GPIO_InitStruct.Alternate = this->htim.Instance == TIM2 ? GPIO_AF1_TIM2 : GPIO_AF2_TIM3;//TIM\3\4¶¼ÊÇ0x02
+	GPIO_InitStruct.Alternate = this->htim.Instance == TIM2 ? GPIO_AF1_TIM2 : GPIO_AF2_TIM3;//TIM\3\4éƒ½æ˜¯0x02
 	HAL_GPIO_Init(r.GPIOx, &GPIO_InitStruct);
 }
 

@@ -60,11 +60,11 @@ void SUPERCAP::decode()
 
 void SUPERCAP::encode()
 {
-	//´¿·¢ Òª¸Ä¶«Î÷ÔÚrcÀï¸Ä
+	//çº¯å‘ è¦æ”¹ä¸œè¥¿åœ¨rcé‡Œæ”¹
 	int packet_size = sizeof(Txsuper);
 	Txsuper.count++;
 	
-	// ½«Êı¾İ°ü¸´ÖÆµ½·¢ËÍ»º³åÇø
+	// å°†æ•°æ®åŒ…å¤åˆ¶åˆ°å‘é€ç¼“å†²åŒº
 	memcpy(tx_data, &Txsuper, packet_size);
 	if (Txsuper.count == 100)
 	{
@@ -72,30 +72,30 @@ void SUPERCAP::encode()
 	}
 
 
-	// ¼ÆËã²¢¸½¼Ó CRC16 Ğ£ÑéºÍ
+	// è®¡ç®—å¹¶é™„åŠ  CRC16 æ ¡éªŒå’Œ
 	//appendCRC16CheckSum(tx_data, packet_size);
 	
-	// ·¢ËÍÊı¾İ
+	// å‘é€æ•°æ®
 	m_uart->UARTTransmit(tx_data, packet_size);
 }
 
 /**
- * @brief  ¹¦ÂÊ¿ØÖÆµÄÖ÷º¯Êı
- * @param  _RF_power:²ÃÅĞÏµÍ³¹¦ÂÊ
- * @param  _motor_power:µç»úÊµÊ±¹¦ÂÊ
- * @param  _remain_energy:²ÃÅĞÏµÍ³Ê£ÓàÄÜÁ¿
- * @param  motor_out_raw:ËÙ¶È»·Êä³öÖµ£¬Ò²¼´µçÁ÷Öµ
+ * @brief  åŠŸç‡æ§åˆ¶çš„ä¸»å‡½æ•°
+ * @param  _RF_power:è£åˆ¤ç³»ç»ŸåŠŸç‡
+ * @param  _motor_power:ç”µæœºå®æ—¶åŠŸç‡
+ * @param  _remain_energy:è£åˆ¤ç³»ç»Ÿå‰©ä½™èƒ½é‡
+ * @param  motor_out_raw:é€Ÿåº¦ç¯è¾“å‡ºå€¼ï¼Œä¹Ÿå³ç”µæµå€¼
  * @author kainan
  */
 void SUPERCAP::Control(float _RF_power, float _motor_power, float _remain_energy)
 {
-	/* ¸üĞÂ¹¦ÂÊÊı¾İ */
+	/* æ›´æ–°åŠŸç‡æ•°æ® */
 	Update(_RF_power, _motor_power, _remain_energy);
 
-	/* ÏŞ·ùÖµ¼ÆËã */
+	/* é™å¹…å€¼è®¡ç®— */
 	Calc_motorLimit();
 
-	/* ³äµç¹¦ÂÊ¼ÆËã */
+	/* å……ç”µåŠŸç‡è®¡ç®— */
 	//if (cap_charge_enable == __ENABLE)
 	//	Calc_capChargePower();
 	//else
@@ -103,9 +103,9 @@ void SUPERCAP::Control(float _RF_power, float _motor_power, float _remain_energy
 }
 
 /**
- * @brief  µÃµ½µçÈİ³äµçµÄÔÊĞí¹¦ÂÊ
+ * @brief  å¾—åˆ°ç”µå®¹å……ç”µçš„å…è®¸åŠŸç‡
  * @param  None
- * @retval cap_charge_power£ºµçÈİ³äµçµÄÔÊĞí¹¦ÂÊ
+ * @retval cap_charge_powerï¼šç”µå®¹å……ç”µçš„å…è®¸åŠŸç‡
  * @author kainan
  */
 float SUPERCAP::Get_capChargePower(void)
@@ -114,9 +114,9 @@ float SUPERCAP::Get_capChargePower(void)
 }
 
 /**
- * @brief  µÃµ½µç»úÊä³öÏŞ·ù±ÈÀı
+ * @brief  å¾—åˆ°ç”µæœºè¾“å‡ºé™å¹…æ¯”ä¾‹
  * @param  None
- * @retval lim_scale£ºÏŞ·ù±ÈÀı£¬Ã¿¸öµç»úÊä³öÓ¦µ±³ËÒÔÕâ¸öÖµ
+ * @retval lim_scaleï¼šé™å¹…æ¯”ä¾‹ï¼Œæ¯ä¸ªç”µæœºè¾“å‡ºåº”å½“ä¹˜ä»¥è¿™ä¸ªå€¼
  * @author kainan
  */
 float SUPERCAP::Get_limScale(void)
@@ -126,23 +126,23 @@ float SUPERCAP::Get_limScale(void)
 
 
 /**
- * @brief  ¼ÆËãµç»úÊÇ·ñ¹¦ÂÊÏŞÖÆ£¬²¢ÔÚÄÚ²¿µÃµ½ÏŞ·ùÖµ
- * @param  motor_out_raw£ºµç»úËÙ¶È»·µÄÊä³öÖµ£¬¼´µçÁ÷Öµ
- * @retval µç»úÊÇ·ñÊÕµ½¹¦ÂÊÏŞÖÆ
+ * @brief  è®¡ç®—ç”µæœºæ˜¯å¦åŠŸç‡é™åˆ¶ï¼Œå¹¶åœ¨å†…éƒ¨å¾—åˆ°é™å¹…å€¼
+ * @param  motor_out_rawï¼šç”µæœºé€Ÿåº¦ç¯çš„è¾“å‡ºå€¼ï¼Œå³ç”µæµå€¼
+ * @retval ç”µæœºæ˜¯å¦æ”¶åˆ°åŠŸç‡é™åˆ¶
  * @author kainan
  */
 
 void SUPERCAP::Calc_motorLimit()
 {
-	int limit_power_total = 0;/* ×î´ó×ÜµçÁ÷ */
+	int limit_power_total = 0;/* æœ€å¤§æ€»ç”µæµ */
 
-	/* µ×ÅÌÊ¹ÓÃµçÈİ¹©µç(Ó¢ĞÛºÍ²½±ø)£¬Ê¹ÓÃµçÂ·²ÉÑù°åµÄ²ÉÑù¹¦ÂÊ½øĞĞµç»ú¹¦ÂÊ¿ØÖÆ */
+	/* åº•ç›˜ä½¿ç”¨ç”µå®¹ä¾›ç”µ(è‹±é›„å’Œæ­¥å…µ)ï¼Œä½¿ç”¨ç”µè·¯é‡‡æ ·æ¿çš„é‡‡æ ·åŠŸç‡è¿›è¡Œç”µæœºåŠŸç‡æ§åˆ¶ */
 	if (control_loop == REAL_POWER_LOOP)
 	{
-		/* motor_power_target * 10Ïàµ±ÓÚµş¼ÓÒ»¸öÇ°À¡Á¿£¬PID»áºÃµ÷Ò»Ğ© */
+		/* motor_power_target * 10ç›¸å½“äºå åŠ ä¸€ä¸ªå‰é¦ˆé‡ï¼ŒPIDä¼šå¥½è°ƒä¸€äº› */
 		limit_power_total = motor_power_target * 10 + motorLimitController.Position(motor_power_target-motor_power,100.f);
 	}
-	/* ÎŞµçÁ÷²ÉÑù°å£¬µ×ÅÌÊ¹ÓÃ²ÃÅĞÏµÍ³¹©µç(ÉÚ±ø)£¬Ê¹ÓÃÊ£ÓàÄÜÁ¿½øĞĞµç»ú¹¦ÂÊ¿ØÖÆ */
+	/* æ— ç”µæµé‡‡æ ·æ¿ï¼Œåº•ç›˜ä½¿ç”¨è£åˆ¤ç³»ç»Ÿä¾›ç”µ(å“¨å…µ)ï¼Œä½¿ç”¨å‰©ä½™èƒ½é‡è¿›è¡Œç”µæœºåŠŸç‡æ§åˆ¶ */
 	else
 	{
 		/*limit_current_total = RF_power_target * 10 
@@ -150,19 +150,19 @@ void SUPERCAP::Calc_motorLimit()
 		limit_power_total = motorLimitController.Position(remain_energy_target - remain_energy, 100.f);
 	}
 
-	/* Èç¹û²»¼ÓÏŞ·ù£¬µ±³¬¹¦ÂÊÊ±£¬limitation¸º´ó½øĞĞ¹¦ÂÊÏŞÖÆ£¬scaleÒ²¸º´ó */
+	/* å¦‚æœä¸åŠ é™å¹…ï¼Œå½“è¶…åŠŸç‡æ—¶ï¼Œlimitationè´Ÿå¤§è¿›è¡ŒåŠŸç‡é™åˆ¶ï¼Œscaleä¹Ÿè´Ÿå¤§ */
 	limit_power_total = _PowerCtrl_Constrain(limit_power_total, 0, max_power_out);
 
 	float scale = 1.0f;
 	float current_sum = 0.0f;
 	float motor_current_max = 0.0f;
 
-	/* Êä³ö×ÜµçÁ÷ */
+	/* è¾“å‡ºæ€»ç”µæµ */
 	for (uint8_t i = 0; i < motor_num; i++)
 		current_sum += abs(ctrl.chassis_motor[i]->setcurrent) * 20.f / 16384.f;
 	power_sum_total = current_sum * 24.f;
 
-	/* ×ÜµçÁ÷³¬¹ıÏŞÖÆÖµ */
+	/* æ€»ç”µæµè¶…è¿‡é™åˆ¶å€¼ */
 	if (power_sum_total > limit_power_total)
 	{
 		scale = limit_power_total / power_sum_total;
@@ -176,7 +176,7 @@ void SUPERCAP::Calc_motorLimit()
 
 
 /**
- * @brief  ¼ÆËãÔÊĞíµçÈİ³äµç¹¦ÂÊ
+ * @brief  è®¡ç®—å…è®¸ç”µå®¹å……ç”µåŠŸç‡
  * @param  None
  * @retval None
  * @author kainan
@@ -190,8 +190,8 @@ void SUPERCAP::Calc_capChargePower(void)
 }
 
 /**
- * @brief  ¸üĞÂ¹¦ÂÊÊı¾İµÄÖµ
- * @param  µç³Ø¹¦ÂÊ£¬µç»ú¹¦ÂÊ£¬RFÊ£ÓàÄÜÁ¿
+ * @brief  æ›´æ–°åŠŸç‡æ•°æ®çš„å€¼
+ * @param  ç”µæ± åŠŸç‡ï¼Œç”µæœºåŠŸç‡ï¼ŒRFå‰©ä½™èƒ½é‡
  * @retval None
  * @author kainan
  */
@@ -201,7 +201,7 @@ void SUPERCAP::Update(float _RF_power, float _motor_power, float _remain_energy)
 	RF_power = _RF_power;
 	motor_power = _motor_power;
 
-	/* ²ÃÅĞÏµÍ³µÄÊı¾İÊÇ·ñ¸üĞÂ */
+	/* è£åˆ¤ç³»ç»Ÿçš„æ•°æ®æ˜¯å¦æ›´æ–° */
 	if (_remain_energy != last_remian_energy)
 	{
 		remain_energy = _remain_energy;
@@ -212,16 +212,16 @@ void SUPERCAP::Update(float _RF_power, float _motor_power, float _remain_energy)
 	if (remain_energy >= 60.0f)
 		remain_energy = 60.0f;
 
-	/* Ê¹ÓÃµç»úµçÁ÷Ô¤²â¹¦ÂÊÖµ */
+	/* ä½¿ç”¨ç”µæœºç”µæµé¢„æµ‹åŠŸç‡å€¼ */
 	
 	Pin = Ct * Icmd * w + k1 * w * w + k2 * Icmd * Icmd;
 }
 
 /**
- * @brief  ÉèÖÃ²ÃÅĞÏµÍ³¹¦ÂÊ£¬µç»ú¹¦ÂÊ£¬Ê£ÓàÄÜÁ¿µÄÄ¿±êÖµ
- * @param  _RF_power_target:²ÃÅĞÏµÍ³¹¦ÂÊÄ¿±êÖµ
- * @param  _motor_power_target:µç»ú¹¦ÂÊÄ¿±êÖµ
- * @param  _remain_energy_target:Ê£ÓàÄÜÁ¿Ä¿±êÖµ
+ * @brief  è®¾ç½®è£åˆ¤ç³»ç»ŸåŠŸç‡ï¼Œç”µæœºåŠŸç‡ï¼Œå‰©ä½™èƒ½é‡çš„ç›®æ ‡å€¼
+ * @param  _RF_power_target:è£åˆ¤ç³»ç»ŸåŠŸç‡ç›®æ ‡å€¼
+ * @param  _motor_power_target:ç”µæœºåŠŸç‡ç›®æ ‡å€¼
+ * @param  _remain_energy_target:å‰©ä½™èƒ½é‡ç›®æ ‡å€¼
  * @retval None
  * @author kainan
  */

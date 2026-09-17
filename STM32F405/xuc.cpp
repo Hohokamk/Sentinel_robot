@@ -28,7 +28,7 @@ void XUC::Decode()
 	{
 
 		yaw_pre = yaw;
-		yaw_spd = ((yaw - yaw_pre) / 0.004) * 2 * PI / 60;//0.004¸ù¾İtasklistµÄ·¢ËÍÆµÂÊ ¼ÆËã³öÀ´yaw_spdµÄµ¥Î»ÊÇrpm
+		yaw_spd = ((yaw - yaw_pre) / 0.004) * 2 * PI / 60;//0.004æ ¹æ®tasklistçš„å‘é€é¢‘ç‡ è®¡ç®—å‡ºæ¥yaw_spdçš„å•ä½æ˜¯rpm
 
 		xuc.pitch = u8_to_float(m_frame + 1) * PI / 180.f;
 		xuc.yaw = u8_to_float(m_frame + 5);
@@ -44,7 +44,7 @@ void XUC::Decode()
 void XUC::Encode()
 {
 	own_color = judgement.data.robot_status_t.robot_id <= 7 ? RED : BLUE;
-	//TxPacket TxNuc;  // ´´½¨Ò»¸öÊı¾İ°üÊµÀı
+	//TxPacket TxNuc;  // åˆ›å»ºä¸€ä¸ªæ•°æ®åŒ…å®ä¾‹
 
 	TxNuc.header = 0x5A;
 	TxNuc.detect_color = !own_color;
@@ -56,18 +56,18 @@ void XUC::Encode()
 	TxNuc.aim_x = aim_x;
 	TxNuc.aim_y = aim_y;
 	TxNuc.aim_z = aim_z;
-	TxNuc.checksum = 0;  // ³õÊ¼»¯Ğ£ÑéºÍÎª0
+	TxNuc.checksum = 0;  // åˆå§‹åŒ–æ ¡éªŒå’Œä¸º0
 
-	// ¼ÆËãÊı¾İ°üµÄ×Ü´óĞ¡
+	// è®¡ç®—æ•°æ®åŒ…çš„æ€»å¤§å°
 	int packet_size = sizeof(TxNuc);
 
-	// ½«Êı¾İ°ü¸´ÖÆµ½·¢ËÍ»º³åÇø
+	// å°†æ•°æ®åŒ…å¤åˆ¶åˆ°å‘é€ç¼“å†²åŒº
 	memcpy(tx_data, &TxNuc, packet_size);
 
-	// ¼ÆËã²¢¸½¼Ó CRC16 Ğ£ÑéºÍ
+	// è®¡ç®—å¹¶é™„åŠ  CRC16 æ ¡éªŒå’Œ
 	appendCRC16CheckSum(tx_data, packet_size);
 
-	// ·¢ËÍÊı¾İ
+	// å‘é€æ•°æ®
 	m_uart->UARTTransmit(tx_data, packet_size);
 }
 

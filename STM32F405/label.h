@@ -4,8 +4,8 @@
 #include "queue.h"
 
 /*
-Í·ÎÄ¼şÖĞ²»Òª½øĞĞÈ«¾Ö±äÁ¿¶¨Òå£¬¿É½øĞĞºê¶¨Òå
-È«¾Ö±äÁ¿ÓÃexternÉùÃ÷£¬±ÜÃâÍ·ÎÄ¼ş¶à´ÎÒıÓÃmultiple defined
+å¤´æ–‡ä»¶ä¸­ä¸è¦è¿›è¡Œå…¨å±€å˜é‡å®šä¹‰ï¼Œå¯è¿›è¡Œå®å®šä¹‰
+å…¨å±€å˜é‡ç”¨externå£°æ˜ï¼Œé¿å…å¤´æ–‡ä»¶å¤šæ¬¡å¼•ç”¨multiple defined
 */
 
 #define CAN1_MOTOR_NUM 6
@@ -42,13 +42,13 @@ public:
 };
 
 
-//ÈÎÎñÓÅÏÈ¼¶
+//ä»»åŠ¡ä¼˜å…ˆçº§
 #define START_TASK_PRIO		1
-//ÈÎÎñ¶ÑÕ»´óĞ¡	
+//ä»»åŠ¡å †æ ˆå¤§å°	
 #define START_STK_SIZE 		128  
-//ÈÎÎñ¾ä±ú
+//ä»»åŠ¡å¥æŸ„
 extern TaskHandle_t StartTask_Handler;
-//ÈÎÎñº¯Êı
+//ä»»åŠ¡å‡½æ•°
 
 #define LED_TASK_PRIO		1
 #define LED_STK_SIZE 		128  

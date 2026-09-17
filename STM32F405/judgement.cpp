@@ -436,7 +436,7 @@ void Judgement::SendData(void)
 
 }
 
-void Judgement::Decode(uint8_t* m_frame)//Î´ÍêÈ«
+void Judgement::Decode(uint8_t* m_frame)//æœªå®Œå…¨
 {
 	const uint16_t cmdID = static_cast<uint16_t>(m_frame[5] | m_frame[6] << 8);
 	uint8_t* rawdata = &m_frame[7];
@@ -615,15 +615,15 @@ bool Judgement::Transmit(uint32_t read_size, uint8_t* plate)
 }
 
 
-/************************************************»æÖÆÖ±Ïß*************************************************
-**²ÎÊı£º*image Graph_DataÀàĞÍ±äÁ¿Ö¸Õë£¬ÓÃÓÚ´æ·ÅÍ¼ĞÎÊı¾İ
-		imagename[3]   Í¼Æ¬Ãû³Æ£¬ÓÃÓÚ±êÊ¶¸ü¸Ä
-		Graph_Operate   Í¼Æ¬²Ù×÷£¬¼ûÍ·ÎÄ¼ş
-		Graph_Layer    Í¼²ã0-9
-		Graph_Color    Í¼ĞÎÑÕÉ«
-		Graph_Width    Í¼ĞÎÏß¿í
-		Start_x¡¢Start_x    ¿ªÊ¼×ø±ê
-		End_x¡¢End_y   ½áÊø×ø±ê
+/************************************************ç»˜åˆ¶ç›´çº¿*************************************************
+**å‚æ•°ï¼š*image Graph_Dataç±»å‹å˜é‡æŒ‡é’ˆï¼Œç”¨äºå­˜æ”¾å›¾å½¢æ•°æ®
+		imagename[3]   å›¾ç‰‡åç§°ï¼Œç”¨äºæ ‡è¯†æ›´æ”¹
+		Graph_Operate   å›¾ç‰‡æ“ä½œï¼Œè§å¤´æ–‡ä»¶
+		Graph_Layer    å›¾å±‚0-9
+		Graph_Color    å›¾å½¢é¢œè‰²
+		Graph_Width    å›¾å½¢çº¿å®½
+		Start_xã€Start_x    å¼€å§‹åæ ‡
+		End_xã€End_y   ç»“æŸåæ ‡
 **********************************************************************************************************/
 void Judgement::LineDraw(graphic_data_struct_t* image, char imagename[3], uint32_t Graph_Operate, \
 	uint32_t Graph_Layer, uint32_t Graph_Color, uint32_t Graph_Width, uint32_t Start_x, \
@@ -643,15 +643,15 @@ void Judgement::LineDraw(graphic_data_struct_t* image, char imagename[3], uint32
 	image->end_y = End_y;
 }
 
-/************************************************»æÖÆ¾ØĞÎ*************************************************
-**²ÎÊı£º*image Graph_DataÀàĞÍ±äÁ¿Ö¸Õë£¬ÓÃÓÚ´æ·ÅÍ¼ĞÎÊı¾İ
-		imagename[3]   Í¼Æ¬Ãû³Æ£¬ÓÃÓÚ±êÊ¶¸ü¸Ä
-		Graph_Operate   Í¼Æ¬²Ù×÷£¬¼ûÍ·ÎÄ¼ş
-		Graph_Layer    Í¼²ã0-9
-		Graph_Color    Í¼ĞÎÑÕÉ«
-		Graph_Width    Í¼ĞÎÏß¿í
-		Start_x¡¢Start_x    ¿ªÊ¼×ø±ê
-		End_x¡¢End_y   ½áÊø×ø±ê£¨¶Ô¶¥½Ç×ø±ê£©
+/************************************************ç»˜åˆ¶çŸ©å½¢*************************************************
+**å‚æ•°ï¼š*image Graph_Dataç±»å‹å˜é‡æŒ‡é’ˆï¼Œç”¨äºå­˜æ”¾å›¾å½¢æ•°æ®
+		imagename[3]   å›¾ç‰‡åç§°ï¼Œç”¨äºæ ‡è¯†æ›´æ”¹
+		Graph_Operate   å›¾ç‰‡æ“ä½œï¼Œè§å¤´æ–‡ä»¶
+		Graph_Layer    å›¾å±‚0-9
+		Graph_Color    å›¾å½¢é¢œè‰²
+		Graph_Width    å›¾å½¢çº¿å®½
+		Start_xã€Start_x    å¼€å§‹åæ ‡
+		End_xã€End_y   ç»“æŸåæ ‡ï¼ˆå¯¹é¡¶è§’åæ ‡ï¼‰
 **********************************************************************************************************/
 void Judgement::Rectangle_Draw(graphic_data_struct_t* image, char imagename[3], uint32_t Graph_Operate, \
 	uint32_t Graph_Layer, uint32_t Graph_Color, uint32_t Graph_Width, uint32_t Start_x, \
@@ -671,15 +671,15 @@ void Judgement::Rectangle_Draw(graphic_data_struct_t* image, char imagename[3], 
 	image->end_y = End_y;
 }
 
-/************************************************»æÖÆÕûÔ²*************************************************
-**²ÎÊı£º*image Graph_DataÀàĞÍ±äÁ¿Ö¸Õë£¬ÓÃÓÚ´æ·ÅÍ¼ĞÎÊı¾İ
-		imagename[3]   Í¼Æ¬Ãû³Æ£¬ÓÃÓÚ±êÊ¶¸ü¸Ä
-		Graph_Operate   Í¼Æ¬²Ù×÷£¬¼ûÍ·ÎÄ¼ş
-		Graph_Layer    Í¼²ã0-9
-		Graph_Color    Í¼ĞÎÑÕÉ«
-		Graph_Width    Í¼ĞÎÏß¿í
-		Start_x¡¢Start_x    Ô²ĞÄ×ø±ê
-		Graph_Radius  Í¼ĞÎ°ë¾¶
+/************************************************ç»˜åˆ¶æ•´åœ†*************************************************
+**å‚æ•°ï¼š*image Graph_Dataç±»å‹å˜é‡æŒ‡é’ˆï¼Œç”¨äºå­˜æ”¾å›¾å½¢æ•°æ®
+		imagename[3]   å›¾ç‰‡åç§°ï¼Œç”¨äºæ ‡è¯†æ›´æ”¹
+		Graph_Operate   å›¾ç‰‡æ“ä½œï¼Œè§å¤´æ–‡ä»¶
+		Graph_Layer    å›¾å±‚0-9
+		Graph_Color    å›¾å½¢é¢œè‰²
+		Graph_Width    å›¾å½¢çº¿å®½
+		Start_xã€Start_x    åœ†å¿ƒåæ ‡
+		Graph_Radius  å›¾å½¢åŠå¾„
 **********************************************************************************************************/
 void Judgement::Circle_Draw(graphic_data_struct_t* image, char imagename[3], uint32_t Graph_Operate, uint32_t Graph_Layer, \
 	uint32_t Graph_Color, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t Graph_Radius)
@@ -698,16 +698,16 @@ void Judgement::Circle_Draw(graphic_data_struct_t* image, char imagename[3], uin
 }
 
 
-/************************************************»æÖÆÔ²»¡*************************************************
-**²ÎÊı£º*image Graph_DataÀàĞÍ±äÁ¿Ö¸Õë£¬ÓÃÓÚ´æ·ÅÍ¼ĞÎÊı¾İ
-		imagename[3]   Í¼Æ¬Ãû³Æ£¬ÓÃÓÚ±êÊ¶¸ü¸Ä
-		Graph_Operate   Í¼Æ¬²Ù×÷£¬¼ûÍ·ÎÄ¼ş
-		Graph_Layer    Í¼²ã0-9
-		Graph_Color    Í¼ĞÎÑÕÉ«
-		Graph_Width    Í¼ĞÎÏß¿í
-		Graph_StartAngle,Graph_EndAngle    ¿ªÊ¼£¬ÖÕÖ¹½Ç¶È
-		Start_y,Start_y    Ô²ĞÄ×ø±ê
-		x_Length,y_Length   x,y·½ÏòÉÏÖá³¤£¬²Î¿¼ÍÖÔ²
+/************************************************ç»˜åˆ¶åœ†å¼§*************************************************
+**å‚æ•°ï¼š*image Graph_Dataç±»å‹å˜é‡æŒ‡é’ˆï¼Œç”¨äºå­˜æ”¾å›¾å½¢æ•°æ®
+		imagename[3]   å›¾ç‰‡åç§°ï¼Œç”¨äºæ ‡è¯†æ›´æ”¹
+		Graph_Operate   å›¾ç‰‡æ“ä½œï¼Œè§å¤´æ–‡ä»¶
+		Graph_Layer    å›¾å±‚0-9
+		Graph_Color    å›¾å½¢é¢œè‰²
+		Graph_Width    å›¾å½¢çº¿å®½
+		Graph_StartAngle,Graph_EndAngle    å¼€å§‹ï¼Œç»ˆæ­¢è§’åº¦
+		Start_y,Start_y    åœ†å¿ƒåæ ‡
+		x_Length,y_Length   x,yæ–¹å‘ä¸Šè½´é•¿ï¼Œå‚è€ƒæ¤­åœ†
 **********************************************************************************************************/
 void Judgement::Arc_Draw(graphic_data_struct_t* image, char imagename[3], uint32_t Graph_Operate, uint32_t Graph_Layer, \
 	uint32_t Graph_Color, uint32_t Graph_StartAngle, uint32_t Graph_EndAngle, uint32_t Graph_Width, uint32_t Start_x, \
@@ -730,17 +730,17 @@ void Judgement::Arc_Draw(graphic_data_struct_t* image, char imagename[3], uint32
 }
 
 
-/************************************************»æÖÆ¸¡µãĞÍÊı¾İ*************************************************
-**²ÎÊı£º*image Graph_DataÀàĞÍ±äÁ¿Ö¸Õë£¬ÓÃÓÚ´æ·ÅÍ¼ĞÎÊı¾İ
-		imagename[3]   Í¼Æ¬Ãû³Æ£¬ÓÃÓÚ±êÊ¶¸ü¸Ä
-		Graph_Operate   Í¼Æ¬²Ù×÷£¬¼ûÍ·ÎÄ¼ş
-		Graph_Layer    Í¼²ã0-9
-		Graph_Color    Í¼ĞÎÑÕÉ«
-		Graph_Width    Í¼ĞÎÏß¿í
-		Graph_Size     ×ÖºÅ
-		Graph_Digit    Ğ¡ÊıÎ»Êı
-		Start_x¡¢Start_x    ¿ªÊ¼×ø±ê
-		Graph_Float   ÒªÏÔÊ¾µÄ±äÁ¿
+/************************************************ç»˜åˆ¶æµ®ç‚¹å‹æ•°æ®*************************************************
+**å‚æ•°ï¼š*image Graph_Dataç±»å‹å˜é‡æŒ‡é’ˆï¼Œç”¨äºå­˜æ”¾å›¾å½¢æ•°æ®
+		imagename[3]   å›¾ç‰‡åç§°ï¼Œç”¨äºæ ‡è¯†æ›´æ”¹
+		Graph_Operate   å›¾ç‰‡æ“ä½œï¼Œè§å¤´æ–‡ä»¶
+		Graph_Layer    å›¾å±‚0-9
+		Graph_Color    å›¾å½¢é¢œè‰²
+		Graph_Width    å›¾å½¢çº¿å®½
+		Graph_Size     å­—å·
+		Graph_Digit    å°æ•°ä½æ•°
+		Start_xã€Start_x    å¼€å§‹åæ ‡
+		Graph_Float   è¦æ˜¾ç¤ºçš„å˜é‡
 **********************************************************************************************************/
 void Judgement::Float_Draw(float_data_struct_t* image, char imagename[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color, \
 	uint32_t Graph_Size, uint32_t Graph_Digit, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, float Graph_Float)
@@ -766,17 +766,17 @@ void Judgement::Float_Draw(float_data_struct_t* image, char imagename[3], uint32
 }
 
 
-/************************************************»æÖÆ×Ö·ûĞÍÊı¾İ*************************************************
-**²ÎÊı£º*image Graph_DataÀàĞÍ±äÁ¿Ö¸Õë£¬ÓÃÓÚ´æ·ÅÍ¼ĞÎÊı¾İ
-		imagename[3]   Í¼Æ¬Ãû³Æ£¬ÓÃÓÚ±êÊ¶¸ü¸Ä
-		Graph_Operate   Í¼Æ¬²Ù×÷£¬¼ûÍ·ÎÄ¼ş
-		Graph_Layer    Í¼²ã0-9
-		Graph_Color    Í¼ĞÎÑÕÉ«
-		Graph_Width    Í¼ĞÎÏß¿í
-		Graph_Size     ×ÖºÅ
-		Graph_Digit    ×Ö·û¸öÊı
-		Start_x¡¢Start_x    ¿ªÊ¼×ø±ê
-		*Char_Data          ´ı·¢ËÍ×Ö·û´®¿ªÊ¼µØÖ·
+/************************************************ç»˜åˆ¶å­—ç¬¦å‹æ•°æ®*************************************************
+**å‚æ•°ï¼š*image Graph_Dataç±»å‹å˜é‡æŒ‡é’ˆï¼Œç”¨äºå­˜æ”¾å›¾å½¢æ•°æ®
+		imagename[3]   å›¾ç‰‡åç§°ï¼Œç”¨äºæ ‡è¯†æ›´æ”¹
+		Graph_Operate   å›¾ç‰‡æ“ä½œï¼Œè§å¤´æ–‡ä»¶
+		Graph_Layer    å›¾å±‚0-9
+		Graph_Color    å›¾å½¢é¢œè‰²
+		Graph_Width    å›¾å½¢çº¿å®½
+		Graph_Size     å­—å·
+		Graph_Digit    å­—ç¬¦ä¸ªæ•°
+		Start_xã€Start_x    å¼€å§‹åæ ‡
+		*Char_Data          å¾…å‘é€å­—ç¬¦ä¸²å¼€å§‹åœ°å€
 **********************************************************************************************************/
 void Judgement::Char_Draw(string_data_struct_t* image, char imagename[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color, \
 	uint32_t Graph_Size, uint32_t Graph_Digit, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, char* Char_Data)
@@ -801,12 +801,12 @@ void Judgement::Char_Draw(string_data_struct_t* image, char imagename[3], uint32
 	}
 }
 
-/************************************************UIÉ¾³ıº¯Êı£¨Ê¹¸ü¸ÄÉúĞ§£©*********************************
-**²ÎÊı£º cnt   Í¼ĞÎ¸öÊı
-		 ...   Í¼ĞÎ±äÁ¿²ÎÊı
+/************************************************UIåˆ é™¤å‡½æ•°ï¼ˆä½¿æ›´æ”¹ç”Ÿæ•ˆï¼‰*********************************
+**å‚æ•°ï¼š cnt   å›¾å½¢ä¸ªæ•°
+		 ...   å›¾å½¢å˜é‡å‚æ•°
 
 
-Tips£º£º¸Ãº¯ÊıÖ»ÄÜÍÆËÍ1£¬2£¬5£¬7¸öÍ¼ĞÎ£¬ÆäËûÊıÄ¿Ğ­ÒéÎ´Éæ¼°
+Tipsï¼šï¼šè¯¥å‡½æ•°åªèƒ½æ¨é€1ï¼Œ2ï¼Œ5ï¼Œ7ä¸ªå›¾å½¢ï¼Œå…¶ä»–æ•°ç›®åè®®æœªæ¶‰åŠ
 **********************************************************************************************************/
 void Judgement::UIDelete(uint8_t deleteOperator, uint8_t deleteLayer)
 {
@@ -817,7 +817,7 @@ void Judgement::UIDelete(uint8_t deleteOperator, uint8_t deleteLayer)
 	UIDeleteData.txFrameHeader.data_length = 8;
 	UIDeleteData.txFrameHeader.seq = UI_seq;
 	memcpy(m_uarttx, &UIDeleteData.txFrameHeader, (sizeof(frame_header_t)));
-	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//Ö¡Í·CRC8Ğ£Ñé
+	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//å¸§å¤´CRC8æ ¡éªŒ
 
 	UIDeleteData.CMD = UI_CMD_Robo_Exchange;
 	UIDeleteData.txID.data_cmd_id = UI_Data_ID_Del;
@@ -838,12 +838,12 @@ void Judgement::UIDelete(uint8_t deleteOperator, uint8_t deleteLayer)
 }
 
 
-/************************************************UIÍÆËÍº¯Êı£¨Ê¹¸ü¸ÄÉúĞ§£©*********************************
-**²ÎÊı£º cnt   Í¼ĞÎ¸öÊı
-		 ...   Í¼ĞÎ±äÁ¿²ÎÊı
+/************************************************UIæ¨é€å‡½æ•°ï¼ˆä½¿æ›´æ”¹ç”Ÿæ•ˆï¼‰*********************************
+**å‚æ•°ï¼š cnt   å›¾å½¢ä¸ªæ•°
+		 ...   å›¾å½¢å˜é‡å‚æ•°
 
 
-Tips£º£º¸Ãº¯ÊıÖ»ÄÜÍÆËÍ1£¬2£¬5£¬7¸öÍ¼ĞÎ£¬ÆäËûÊıÄ¿Ğ­ÒéÎ´Éæ¼°
+Tipsï¼šï¼šè¯¥å‡½æ•°åªèƒ½æ¨é€1ï¼Œ2ï¼Œ5ï¼Œ7ä¸ªå›¾å½¢ï¼Œå…¶ä»–æ•°ç›®åè®®æœªæ¶‰åŠ
 **********************************************************************************************************/
 void Judgement::UI_ReFresh(int cnt, graphic_data_struct_t* imageData)
 {
@@ -856,7 +856,7 @@ void Judgement::UI_ReFresh(int cnt, graphic_data_struct_t* imageData)
 	graphicData.txFrameHeader.data_length = 6 + cnt * 15;
 	graphicData.txFrameHeader.seq = UI_seq;
 	memcpy(m_uarttx, &graphicData.txFrameHeader, (sizeof(frame_header_t)));
-	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//Ö¡Í·CRC8Ğ£Ñé
+	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//å¸§å¤´CRC8æ ¡éªŒ
 
 	graphicData.CMD = UI_CMD_Robo_Exchange;
 	switch (cnt)
@@ -877,7 +877,7 @@ void Judgement::UI_ReFresh(int cnt, graphic_data_struct_t* imageData)
 		break;
 	}
 	graphicData.txID.sender_ID = robotId;
-	graphicData.txID.receiver_ID = clientId;                          //Ìî³ä²Ù×÷Êı¾İ
+	graphicData.txID.receiver_ID = clientId;                          //å¡«å……æ“ä½œæ•°æ®
 
 	memcpy(m_uarttx + 5, (uint8_t*)&graphicData.CMD, 8);
 
@@ -887,7 +887,7 @@ void Judgement::UI_ReFresh(int cnt, graphic_data_struct_t* imageData)
 	AppendCRC16CheckSum(m_uarttx, dataLength);
 
 	m_uart->UARTTransmit(m_uarttx, dataLength);
-	UI_seq++;                                                         //°üĞòºÅ+1
+	UI_seq++;                                                         //åŒ…åºå·+1
 }
 
 void Judgement::UI_ReFresh(int cnt, float_data_struct_t* floatdata)
@@ -901,7 +901,7 @@ void Judgement::UI_ReFresh(int cnt, float_data_struct_t* floatdata)
 	graphicData.txFrameHeader.data_length = 6 + cnt * sizeof(graphic_data_struct_t);
 	graphicData.txFrameHeader.seq = UI_seq;
 	memcpy(m_uarttx, &graphicData.txFrameHeader, (sizeof(frame_header_t)));
-	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//Ö¡Í·CRC8Ğ£Ñé
+	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//å¸§å¤´CRC8æ ¡éªŒ
 
 	graphicData.CMD = UI_CMD_Robo_Exchange;
 	switch (cnt)
@@ -922,7 +922,7 @@ void Judgement::UI_ReFresh(int cnt, float_data_struct_t* floatdata)
 		break;
 	}
 	graphicData.txID.sender_ID = robotId;
-	graphicData.txID.receiver_ID = clientId;                          //Ìî³ä²Ù×÷Êı¾İ
+	graphicData.txID.receiver_ID = clientId;                          //å¡«å……æ“ä½œæ•°æ®
 
 	memcpy(m_uarttx + 5, (uint8_t*)&graphicData.CMD, 8);
 
@@ -932,15 +932,15 @@ void Judgement::UI_ReFresh(int cnt, float_data_struct_t* floatdata)
 	AppendCRC16CheckSum(m_uarttx, dataLength);
 
 	m_uart->UARTTransmit(m_uarttx, dataLength);
-	UI_seq++;                                                         //°üĞòºÅ+1
+	UI_seq++;                                                         //åŒ…åºå·+1
 }
 
-/************************************************UIÍÆËÍ×Ö·û£¨Ê¹¸ü¸ÄÉúĞ§£©*********************************
-**²ÎÊı£º cnt   Í¼ĞÎ¸öÊı
-		 ...   Í¼ĞÎ±äÁ¿²ÎÊı
+/************************************************UIæ¨é€å­—ç¬¦ï¼ˆä½¿æ›´æ”¹ç”Ÿæ•ˆï¼‰*********************************
+**å‚æ•°ï¼š cnt   å›¾å½¢ä¸ªæ•°
+		 ...   å›¾å½¢å˜é‡å‚æ•°
 
 
-Tips£º£º¸Ãº¯ÊıÖ»ÄÜÍÆËÍ1£¬2£¬5£¬7¸öÍ¼ĞÎ£¬ÆäËûÊıÄ¿Ğ­ÒéÎ´Éæ¼°
+Tipsï¼šï¼šè¯¥å‡½æ•°åªèƒ½æ¨é€1ï¼Œ2ï¼Œ5ï¼Œ7ä¸ªå›¾å½¢ï¼Œå…¶ä»–æ•°ç›®åè®®æœªæ¶‰åŠ
 **********************************************************************************************************/
 void Judgement::Char_ReFresh(string_data_struct_t* string_Data)
 {
@@ -953,13 +953,13 @@ void Judgement::Char_ReFresh(string_data_struct_t* string_Data)
 	graphicData.txFrameHeader.data_length = 51;
 	graphicData.txFrameHeader.seq = UI_seq;
 	memcpy(m_uarttx, &graphicData.txFrameHeader, (sizeof(frame_header_t)));
-	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//Ö¡Í·CRC8Ğ£Ñé
+	AppendCRC8CheckSum(m_uarttx, sizeof(frame_header_t));	//å¸§å¤´CRC8æ ¡éªŒ
 
 	graphicData.CMD = UI_CMD_Robo_Exchange;
 
 	graphicData.txID.data_cmd_id = UI_Data_ID_DrawChar;
 	graphicData.txID.sender_ID = robotId;
-	graphicData.txID.receiver_ID = clientId;                          //Ìî³ä²Ù×÷Êı¾İ
+	graphicData.txID.receiver_ID = clientId;                          //å¡«å……æ“ä½œæ•°æ®
 
 	memcpy(m_uarttx + 5, (uint8_t*)&graphicData.CMD, 8);
 
@@ -969,7 +969,7 @@ void Judgement::Char_ReFresh(string_data_struct_t* string_Data)
 	AppendCRC16CheckSum(m_uarttx, dataLength);
 
 	m_uart->UARTTransmit(m_uarttx, dataLength);
-	UI_seq++;                                                         //°üĞòºÅ+1
+	UI_seq++;                                                         //åŒ…åºå·+1
 }
 
 

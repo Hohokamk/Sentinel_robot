@@ -38,7 +38,7 @@ public:
 	void Init(CAN_TypeDef *instance);
 	void InitFilter();
 	HAL_StatusTypeDef Transmit(const uint32_t ID, const uint8_t* const pData, const uint8_t len = 8);
-	uint8_t data[12][8];//½ÓÊÕÊı¾İ»º³åÇø£¬½áºÏ£¬motor.hÖĞontimerº¯Êı£¬12ÊÇ·ÀÖ¹3508ºÍ6020½ÓÊÕÊı¾İÊ±´æ·ÅÎ»ÖÃ³åÍ»
+	uint8_t data[12][8];//æ¥æ”¶æ•°æ®ç¼“å†²åŒºï¼Œç»“åˆï¼Œmotor.hä¸­ontimerå‡½æ•°ï¼Œ12æ˜¯é˜²æ­¢3508å’Œ6020æ¥æ”¶æ•°æ®æ—¶å­˜æ”¾ä½ç½®å†²çª
 	uint8_t joint_data[6][6];
 	uint8_t temp_data[16];
 	uint8_t jointpdata[6][8]{};
@@ -47,8 +47,8 @@ public:
 	BaseType_t pd_Rx = false, pd_Tx = false;
 
 private:
-	CanTxMsgTypeDef	TxMessage;//·¢ËÍ½á¹¹Ìå
-	CanRxMsgTypeDef RxMessage;//½ÓÊÕ½á¹¹Ìå
+	CanTxMsgTypeDef	TxMessage;//å‘é€ç»“æ„ä½“
+	CanRxMsgTypeDef RxMessage;//æ¥æ”¶ç»“æ„ä½“
 };
 
 #ifdef __cplusplus
