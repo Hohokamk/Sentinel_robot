@@ -136,10 +136,11 @@ HAL_StatusTypeDef CAN::Transmit(const uint32_t ID, const uint8_t* const pData, c
 void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan)
 {
 	const uint32_t id = hcan->pRxMsg->StdId;
-	if (hcan == &can1.hcan)
-		memcpy(can1.data[id - 0x201], hcan->pRxMsg->Data, sizeof(uint8_t) * 8);
-	else if (id >= 0x201 && id <= 0x208)                       // M3508/M6020 反馈段
-		memcpy(can2.data[id - 0x201], hcan->pRxMsg->Data, 8);
+	if (id >= 0x201 && id <= 0x208)                    // M3508 / M6020 / M2006 反馈段
+	{
+		if (hcan == &can1.hcan) memcpy(can1.data[id - 0x201], hcan->pRxMsg->Data, 8);
+		else                    memcpy(can2.data[id - 0x201], hcan->pRxMsg->Data, 8);
+	}
 	else                                                        // 达妙：仲裁 ID = MST_ID
 	{
 		for (uint8_t i = 0; i < sizeof(DMmotor) / sizeof(DMmotor[0]); i++)

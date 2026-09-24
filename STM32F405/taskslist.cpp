@@ -74,19 +74,20 @@ void start_task(void* pvParameters)
 int CNT = 0;
 void MotorUpdateTask(void* pvParameters)
 {
+	TickType_t xlastWakeTime = xTaskGetTickCount();
 	
 	while (1)
 	{
-	TickType_t xlastWakeTime = xTaskGetTickCount();
+	
 	
 		for (auto& motor : can1_motor)motor.Ontimer(can1.data, can1.temp_data);
 
 		for (auto& motor : can2_motor)motor.Ontimer(can2.data, can2.temp_data);
 
-		DMmotor[0].State_Decode(can2.jointidata)
-			.DMmotor_Ontimer(DMmotor[0].Kp, DMmotor[0].Kd, can2.jointpdata[0]);
-		DMmotor[1].State_Decode(can2.jointidata)
-			.DMmotor_Ontimer(DMmotor[1].Kp, DMmotor[1].Kd, can2.jointpdata[1]);
+		for (uint8_t i = 0; i < sizeof(DMmotor) / sizeof(DMmotor[0]); i++)
+			DMmotor[i].State_Decode(can2.jointidata)
+			.DMmotor_Ontimer(DMmotor[i].Kp, DMmotor[i].Kd, can2.jointpdata[i]);
+
 
 
 	vTaskDelayUntil(&xlastWakeTime, pdMS_TO_TICKS(2));//开始执行该任务之后1ms再执行该任务
@@ -95,10 +96,11 @@ void MotorUpdateTask(void* pvParameters)
 
 void CanTransimtTask(void* pvParameters)
 {
+	TickType_t xlastWakeTime1 = xTaskGetTickCount();
 	while (true)
 	{
 
-		TickType_t xlastWakeTime1 = xTaskGetTickCount();
+		
 
 		switch ((timer.counter++) % 3)
 		{
@@ -113,6 +115,7 @@ void CanTransimtTask(void* pvParameters)
 		case 2:
 			can1.Transmit(0x200, can1.temp_data);
 			can2.Transmit(0x200, can2.temp_data);
+			break;
 		default:
 			break;
 		}
