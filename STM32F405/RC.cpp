@@ -43,7 +43,7 @@ void RC::RC_CheckState() {
 		break;
 
 	case RC_STATE(UP, MID):
-		ctrl.mode = CONTROL::ROTATION;
+		ctrl.mode = CONTROL::RESET;
 		break;
 
 	case RC_STATE(UP, DOWN):
@@ -67,7 +67,7 @@ void RC::RC_CheckState() {
 		break;
 
 	case RC_STATE(DOWN, MID):
-		ctrl.mode = CONTROL::FIRE;
+		ctrl.mode = CONTROL::RESET;
 		break;
 
 	case RC_STATE(DOWN, DOWN):
@@ -92,32 +92,40 @@ void RC::RC_Control() {
 
 		switch (ctrl.mode)
 		{
-		case CONTROL::ROTATION:
-
+		case CONTROL::ROTATION://小陀螺
+			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
+			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
+			ctrl.chassis.speedz = 1000;
 			break;
 
-		case CONTROL::FOLLOW:
-
+		case CONTROL::FOLLOW://正方向为云台方向，跟随云台视角
+			//先要读取云台的角度，根据云台的方向计算出具体的speedx和speedy
+			ctrl.chassis.Keep_Direction();
 			break;
 
-		case CONTROL::SEPARATE:
-
+		case CONTROL::SEPARATE://底盘与云台分离，底盘不受云台影响
+			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
+			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
 			break;
 
-		case CONTROL::AUTOAIM:
-
+		case CONTROL::AUTOAIM://自动瞄准	
+			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
+			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
 			break;
 
-		case CONTROL::FIRE:
-	
+		case CONTROL::FIRE://射击
+			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
+			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
 			break;
 
-		case CONTROL::STOP:
-
+		case CONTROL::STOP://停止
+			ctrl.chassis.speedx = 0;
+			ctrl.chassis.speedy = 0;
+			ctrl.chassis.speedz = 0;
 			break;
 
-		case CONTROL::SPINNING:
-
+		case CONTROL::SPINNING://旋转
+			ctrl.chassis.speedz = rc.ch[0] * para.max_speed / 660.f;
 			break;
 
 		default:

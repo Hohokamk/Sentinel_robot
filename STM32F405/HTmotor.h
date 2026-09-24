@@ -65,18 +65,18 @@ public:
 	float uint_to_float(int x_int, float x_min, float x_max, int bits);//计算用函数
 	int float_to_uint(float x, float x_min, float x_max, int bits);
 
-	void  CanComm_ControlCmd(CAN hcan, uint8_t cmd, uint32_t id);//电机模式设置
-	void  ZeroPosition(CAN hcan, uint32_t id);//校准零位置
+	void  CanComm_ControlCmd(CAN& hcan, uint8_t cmd);//电机模式设置
+	void  ZeroPosition(CAN& hcan, uint32_t id);//校准零位置
 
-	void  Motor_Start(CAN hcan, uint32_t id);
-	void DMmotorinit();//初始化，使能所有电机
+	void  Motor_Start(CAN& hcan, uint32_t id);
+	void DMmotorinit(CAN& hcan);//初始化，使能所有电机
 
 	//启动电机会设置电机模式并零位校准
-	void  Motor_Stop(CAN hcan, uint32_t id);//电机失力
+	void  Motor_Stop(CAN& hcan, uint32_t id);//电机失力
 
-	DMMOTOR& State_Decode(CAN hcan, uint8_t odata[][8]);//解码并接收数据
-	void DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata);//电流计算，不包括发送
-	void DMmotor_transmit(uint32_t id);//使能并发送控制数据
+	DMMOTOR& State_Decode(uint8_t odata[][8]);//解码并接收数据
+	void DMmotor_Ontimer(float f_kp, float f_kd, uint8_t* odata);//电流计算，不包括发送
+	void DMmotor_transmit(CAN& hcan);//使能并发送控制数据
 
 	void SetTorque(float settorque);
 	float GetPosition();
@@ -89,4 +89,4 @@ public:
 
 };
 
-extern DMMOTOR DMmotor[1];
+extern DMMOTOR DMmotor[2];

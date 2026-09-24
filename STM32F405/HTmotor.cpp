@@ -16,11 +16,15 @@ void buffer_append_int16(uint8_t* buffer, int16_t number, int16_t* index) {
 	buffer[(*index)++] = number;
 }
 
-DMMOTOR& DMMOTOR::State_Decode(CAN hcan, uint8_t idata[][8])//接收反馈数据
+DMMOTOR& DMMOTOR::State_Decode(uint8_t idata[][8])//接收反馈数据
 {
 	//浮点型数据
 	//receive_data[0]=电机id
-	uint8_t id = ID - 0x01;
+	uint8_t id = 0xFF;
+	for (uint8_t i = 0; i < sizeof(DMmotor) / sizeof(DMmotor[0]); i++) {
+		if (&DMmotor[i] == this) { id = i; break; }//获取当前电机的索引
+	}
+	if (id == 0xFF) return *this;
 	int direct = 0;
 	int tmp_value = 0;
 	tmp_value = (idata[id][1] << 8) | (idata[id][2]);//电机位置
@@ -30,18 +34,34 @@ DMMOTOR& DMMOTOR::State_Decode(CAN hcan, uint8_t idata[][8])//接收反馈数据
 	tmp_value = (idata[id][5]) | ((idata[id][4] & 0x0f) << 8);
 	current = uint_to_float(tmp_value, C_MIN, C_MAX, 12);
 	torque = current * KT;//（力矩=电流*转矩常数，本产品转矩常数为 1.4Nm/A）
+	
+	return *this;
 }
 
 
-void DMMOTOR::DMmotor_transmit(uint32_t id)
+void DMMOTOR::DMmotor_transmit(CAN& hcan)
 {
-	//CanComm_ControlCmd(can1, CMD_RESET_MODE, id + MOTOR_MODE);//电机失力
-	can2.Transmit(id + MOTOR_MODE, can2.jointpdata[id - 1], 8);
+	//can2.Transmit(this->ID +0x100, can2.jointpdata[this->ID - 1], 8);
+	//这一段有点没看懂
+	uint8_t slot = 0xFF;
+	for (uint8_t i = 0; i < sizeof(DMmotor) / sizeof(DMmotor[0]); i++)
+		if (&DMmotor[i] == this) { slot = i; break; }//获取当前电机的索引
+	if (slot == 0xFF) return;
+
+	uint32_t offset;//协议规定的控制帧 ID 偏移
+	switch (function)
+	{
+	case MIT:   offset = 0x000; break;//MIT：控制帧 ID = CAN_ID
+	case P_S:   offset = 0x100; break;//位置速度模式
+	case SPEED: offset = 0x200; break;//速度模式
+	default:    return;
+	}
+	hcan.Transmit(ID + offset, hcan.jointpdata[slot], 8);
 }
 
-void DMMOTOR::DMmotorinit()
+void DMMOTOR::DMmotorinit(CAN& hcan)
 {
-	CanComm_ControlCmd(can2, CMD_MOTOR_MODE, MOTOR_MODE + 1);
+	CanComm_ControlCmd(hcan, CMD_MOTOR_MODE);
 	delay.delay_ms(1);
 }
 
@@ -65,7 +85,7 @@ float DMMOTOR::GetTorque()
 	return torque;
 }
 
-void  DMMOTOR::CanComm_ControlCmd(CAN hcan, uint8_t cmd, uint32_t id)//使能帧
+void  DMMOTOR::CanComm_ControlCmd(CAN& hcan, uint8_t cmd)//使能帧
 {
 	uint8_t buf[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
 	switch (cmd)
@@ -89,7 +109,7 @@ void  DMMOTOR::CanComm_ControlCmd(CAN hcan, uint8_t cmd, uint32_t id)//使能帧
 	default:
 		return; /* 直接退出函数 */
 	}
-	hcan.Transmit(id, buf, 8);
+	hcan.Transmit(this->ID, buf, 8);
 }
 
 float DMMOTOR::uint_to_float(int x_int, float x_min, float x_max, int bits)
@@ -106,11 +126,8 @@ int DMMOTOR::float_to_uint(float x, float x_min, float x_max, int bits)
 	return (int)((x - offset) * ((float)((1 << bits) - 1)) / span);
 }
 
-void DMMOTOR::DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata)
+void DMMOTOR::DMmotor_Ontimer(float f_kp, float f_kd, uint8_t* odata)
 {
-	unsigned char* P = (unsigned char*)&setPos; // 定义一个无符号字符型指针p并指向f的地址
-	unsigned char* V = (unsigned char*)&setSpeed; // 定义一个无符号字符型指针p并指向f的地址
-	uint8_t id = ID - 0x01;
 	uint32_t p = 0, v = 0, kp = 0, kd = 0, t = 0;//位置给定，速度给定，位置比例系数，位置微分系数，转矩给定值
 	/* 限制输入的参数在定义的范围内 */
 	LIMIT_MIN_MAX(setPos, P_MIN, P_MAX);
@@ -118,16 +135,16 @@ void DMMOTOR::DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata)
 	LIMIT_MIN_MAX(f_kp, KP_MIN, KP_MAX);
 	LIMIT_MIN_MAX(f_kd, KD_MIN, KD_MAX);
 	LIMIT_MIN_MAX(setTorque, T_MIN, T_MAX);
-	switch (MOTOR_MODE)
+	switch (this->function)
 	{
-	case 0x00:
-		/* 根据协议，对float参数进行转换 */
+	case MIT:
+		// 根据协议，对float参数进行转换 
 		p = float_to_uint(setPos, P_MIN, P_MAX, 16);//位置两个字节
 		v = float_to_uint(setSpeed, V_MIN, V_MAX, 12);//速度12位
 		kp = float_to_uint(f_kp, KP_MIN, KP_MAX, 12);//比例系数12位
 		kd = float_to_uint(f_kd, KD_MIN, KD_MAX, 12);//速度系数12位
 		t = float_to_uint(setTorque, T_MIN, T_MAX, 12);//前馈力矩（电流）
-		/* 根据传输协议，把数据转换为CAN命令数据字段并存入输出缓冲区*/
+		//根据传输协议，把数据转换为CAN命令数据字段并存入输出缓冲区
 
 		odata[0] = p >> 8;
 		odata[1] = p & 0xFF;
@@ -138,35 +155,22 @@ void DMMOTOR::DMmotor_Ontimer(CAN hcan, float f_kp, float f_kd, uint8_t* odata)
 		odata[6] = ((kd & 0xF) << 4) | (t >> 8);
 		odata[7] = t & 0xff;
 		break;
+		//写得很好，但是无人在意(没有用到)
 
-	case 0x100:
-		odata[0] = P[0];
-		odata[1] = P[1];
-		odata[2] = P[2];
-		odata[3] = P[3];
-		odata[4] = V[0];
-		odata[5] = V[1];
-		odata[6] = V[2];
-		odata[7] = V[3];
-		///* 根据协议，对float参数进行转换 */
-		//下面这种转换方式存在问题，留待以后解决，上面方法可用
-		//p = float_to_uint(setPos, P_MIN, P_MAX, 32);
-		//v = float_to_uint(setSpeed, V_MIN, V_MAX, 32);
-		///* 根据传输协议，把数据转换为CAN命令数据字段并存入输出缓冲区*/
-		//odata[id][0] = p & 0xff;
-		//odata[id][1] = (p >> 8) & 0xff;
-		//odata[id][2] = (p >> 16) & 0xff;
-		//odata[id][3] = (p >> 24) & 0xff;
-		//odata[id][4] = v & 0xff;
-		//odata[id][5] = (v >>8) & 0xff;
-		//odata[id][6] = (v >>16) & 0xff;
-		//odata[id][7] = (v >>24) & 0xff;
+	case P_S:   //电机1：Pitch：float 位置 + float 速度
+		memcpy(odata, &setPos, 4);
+		memcpy(odata + 4, &setSpeed, 4);
 		break;
+		//注意这里，学长在这里蒙了，是因为MIT模式和P_S模式的区别
+		//MIT模式是发送位置、速度、力矩、比例系数、微分系数，而P_S模式是发送位置和速度，所以在P_S模式下，只需要发送位置和速度即可。
 
-	case 0x200:
+	case SPEED: //电机2：Yaw：float 速度 + 4 字节 0
+		memcpy(odata, &setSpeed, 4);
+		memset(odata + 4, 0, 4);
 		break;
 
 	default:
-		return; /* 直接退出函数 */
+		memset(odata, 0, 8);
+		break;
 	}
 }

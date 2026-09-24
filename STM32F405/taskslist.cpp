@@ -10,8 +10,8 @@
 #include "delay.h"
 #include "HTmotor.h"
 #include "Power_read.h"
-extern float Kp = 10;
-extern float Kd = 0.6;
+//extern float Kp = 10;
+//extern float Kd = 0.6;
 extern int start_flag;
 void TASK::Init()
 {
@@ -83,8 +83,10 @@ void MotorUpdateTask(void* pvParameters)
 
 		for (auto& motor : can2_motor)motor.Ontimer(can2.data, can2.temp_data);
 
-		DMmotor[0].State_Decode(can2, can2.jointidata)
-			.DMmotor_Ontimer(can2, DMmotor[1].Kp, DMmotor[1].Kd, can2.jointpdata[0]);
+		DMmotor[0].State_Decode(can2.jointidata)
+			.DMmotor_Ontimer(DMmotor[0].Kp, DMmotor[0].Kd, can2.jointpdata[0]);
+		DMmotor[1].State_Decode(can2.jointidata)
+			.DMmotor_Ontimer(DMmotor[1].Kp, DMmotor[1].Kd, can2.jointpdata[1]);
 
 
 	vTaskDelayUntil(&xlastWakeTime, pdMS_TO_TICKS(2));//开始执行该任务之后1ms再执行该任务
@@ -101,7 +103,8 @@ void CanTransimtTask(void* pvParameters)
 		switch ((timer.counter++) % 3)
 		{
 		case 0:
-				DMmotor[0].DMmotor_transmit(1);
+				DMmotor[0].DMmotor_transmit(can2);
+				DMmotor[1].DMmotor_transmit(can2);
 			break;
 		case 1:
 			can1.Transmit(0x1ff, can1.temp_data + 8);
@@ -149,7 +152,8 @@ void ArmTask(void* pvParameters)
 	while (true)
 	{
 		//初始化达妙电机
-		DMmotor[0].DMmotorinit();
+		DMmotor[0].DMmotorinit(can2);
+		DMmotor[1].DMmotorinit(can2);
 		power.Send();
 		vTaskDelay(100);
 	}

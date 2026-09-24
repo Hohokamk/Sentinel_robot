@@ -1,6 +1,7 @@
 #include "can.h"
 #include "label.h"
 #include "string.h"
+#include "HTmotor.h"
 
 /*
 * @brief		CAN通信初始化函数
@@ -134,23 +135,21 @@ HAL_StatusTypeDef CAN::Transmit(const uint32_t ID, const uint8_t* const pData, c
 */
 void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan)
 {
+	const uint32_t id = hcan->pRxMsg->StdId;
 	if (hcan == &can1.hcan)
-		memcpy(can1.data[hcan->pRxMsg->StdId - 0x201], hcan->pRxMsg->Data, sizeof(uint8_t) * 8);
-	else
+		memcpy(can1.data[id - 0x201], hcan->pRxMsg->Data, sizeof(uint8_t) * 8);
+	else if (id >= 0x201 && id <= 0x208)                       // M3508/M6020 反馈段
+		memcpy(can2.data[id - 0x201], hcan->pRxMsg->Data, 8);
+	else                                                        // 达妙：仲裁 ID = MST_ID
 	{
-		if (hcan->pRxMsg->StdId == 1)
-		{
-			memcpy(can2.jointidata, hcan->pRxMsg->Data, sizeof(uint8_t) * 8);
-		}
-		else
-		{
-			memcpy(can2.data[hcan->pRxMsg->StdId - 0x201], hcan->pRxMsg->Data, sizeof(uint8_t) * 8);
-		}
+		for (uint8_t i = 0; i < sizeof(DMmotor) / sizeof(DMmotor[0]); i++)
+			if ((hcan->pRxMsg->Data[0] & 0x0F) == (DMmotor[i].ID & 0x0F))
+			{
+				memcpy(can2.jointidata[i], hcan->pRxMsg->Data, 8);
+				break;
+			}
 	}
-
-	//can2.pd_Rx = xQueueSendFromISR((QueueHandle_t)Can2QueueHadle, hcan->pRxMsg->Data, NULL);
-
-/*#### add enable can it again to solve can receive only one ID problem!!!####**/
+	
 	__HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
 }
 
