@@ -96,7 +96,7 @@ void MotorUpdateTask(void* pvParameters)
 
 void CanTransimtTask(void* pvParameters)
 {
-	TickType_t xlastWakeTime1 = xTaskGetTickCount();
+	TickType_t xlastWakeTime1 = xTaskGetTickCount();//不知道为什么要从while里面挪出来，这个函数是FreeRTOS的一个函数，获取当前任务的时间戳
 	while (true)
 	{
 
