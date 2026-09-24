@@ -17,7 +17,8 @@ void RC::OnRC()
 
 	if (Shift_mode())
 	{
-
+		ctrl.pantile.mark_yaw = (float)ctrl.pantile_motor[CONTROL::PANTILE::YAW]->sum_angle;
+		
 	}
 
 }
@@ -83,9 +84,9 @@ void RC::RC_Control() {
 	if (ctrl.mode != CONTROL::RESET)
 	{
 
-		/*ctrl.chassis.speedx = rc.ch[3] * 4000.f / 660.f;
+		ctrl.chassis.speedx = rc.ch[3] * 4000.f / 660.f;
 		ctrl.chassis.speedy = -1 * rc.ch[2] * 4000.f / 660.f;
-		ctrl.chassis.speedz = 0;*/
+		ctrl.chassis.speedz = 0;
 
 		//ctrl.chassis.Keep_Direction();
 
@@ -131,20 +132,14 @@ void RC::RC_Control() {
 		can1_motor[1].setspeed = 0;
 		can1_motor[2].setspeed = 0;
 		can1_motor[3].setspeed = 0;
-		can1_motor[4].setspeed = 0;
-		can1_motor[5].setspeed = 0;
-		can1_motor[6].setspeed = 0;
-		can1_motor[7].setspeed = 0;
+		
 		can2_motor[0].setspeed = 0;
 		can2_motor[1].setspeed = 0;
 		can2_motor[2].setspeed = 0;
 		can2_motor[3].setspeed = 0;
-		can2_motor[4].setspeed = 0;
-		can2_motor[5].setspeed = 0;
-		can2_motor[6].setspeed = 0;
+		
 		DMmotor[0].setSpeed = 0;
 		DMmotor[1].setSpeed = 0;
-		DMmotor[2].setSpeed = 0;
 	}
 }
 

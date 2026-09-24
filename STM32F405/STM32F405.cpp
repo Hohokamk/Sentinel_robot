@@ -29,23 +29,32 @@
 #include "xuc.h"
 
 Motor can1_motor[CAN1_MOTOR_NUM] = {
-	Motor(M3508,SPD,chassis, ID1, PID(10.f, 0.0f, 1.5f,0.f)),
+	Motor(M3508,SPD,shooter, ID2, PID(10.f, 0.0f, 1.5f,0.f)),
+	Motor(M3508,SPD,shooter, ID3, PID(10.f, 0.0f, 1.5f,0.f)),
+	Motor(M2006,SPD,supply, ID7, PID(20.0f, 0.0f, 0.0f,0.f), PID(0.30f, 0.0f, 0.0f,0.f)),
+	Motor(M6020,POS,pantile, ID5, PID(100.0f, 0.02f, 0.0f,0.f),PID(1.0f, 0.0f, 0.5f,0.7f)),
+};
+	/*Motor(M3508,SPD,chassis, ID1, PID(10.f, 0.0f, 1.5f,0.f)),
 	Motor(M2006,SPD,chassis, ID2, PID(10.f, 0.0f, 1.5f,0.f)),
 	Motor(M6020,POS,pantile, ID3, PID(40.f, 0.0f, 1.5f,0.f),PID(0.8f, 0.005f, 15.0f,0.f)),
 	Motor(M6020,POS,pantile, ID4, PID(40.f, 0.0f, 1.5f,0.f),PID(0.8f, 0.005f, 15.0f,0.f)),
 	Motor(M6020,POS,pantile, ID6, PID(40.f, 0.0f, 1.5f,0.f),PID(0.8f, 0.005f, 15.0f,0.f)),
-	Motor(M6020,SPD,chassis, ID8, PID(10.f, 0.0f, 1.5f,0.f))
-};
+	Motor(M6020,SPD,chassis, ID8, PID(10.f, 0.0f, 1.5f,0.f))*/
 Motor can2_motor[CAN2_MOTOR_NUM] = {
-	Motor(M3508,SPD,chassis, ID1, PID(10.f, 0.0f, 1.5f,0.f)),
+	Motor(M3508,SPD,chassis, ID1, PID(1.5f, 0.1f, 0.0f,0.f)),
+	Motor(M3508,SPD,chassis, ID2, PID(1.5f, 0.1f, 0.0f,0.f)),
+	Motor(M3508,SPD,chassis, ID3, PID(1.5f, 0.1f, 0.0f,0.f)),
+	Motor(M3508,SPD,chassis, ID4, PID(1.5f, 0.1f, 0.0f,0.f)),
+	/*Motor(M3508,SPD,chassis, ID1, PID(10.f, 0.0f, 1.5f,0.f)),
 	Motor(M2006,SPD,chassis, ID2, PID(10.f, 0.0f, 1.5f,0.f)),
 	Motor(M6020,POS,pantile, ID3, PID(40.f, 0.0f, 1.5f,0.f),PID(0.8f, 0.005f, 15.0f,0.f)),
 	Motor(M6020,POS,pantile, ID4, PID(40.f, 0.0f, 1.5f,0.f),PID(0.8f, 0.005f, 15.0f,0.f)),
 	Motor(M6020,POS,pantile, ID7, PID(40.f, 0.0f, 1.5f,0.f),PID(0.8f, 0.005f, 15.0f,0.f)),
-	Motor(M6020,SPD,chassis, ID8, PID(10.f, 0.0f, 1.5f,0.f))
+	Motor(M6020,SPD,chassis, ID8, PID(10.f, 0.0f, 1.5f,0.f))*/
 };
-DMMOTOR DMmotor[1] = {
-	DMMOTOR(0x01, P_S, L_F),
+DMMOTOR DMmotor[2] = {
+	DMMOTOR(0x09, P_S, Pitch),//pitch
+	DMMOTOR(0x06, SPEED, Yaw),//yaw
 };
 
 
@@ -84,17 +93,13 @@ int main(void)
 		&can2_motor[0],
 			& can2_motor[1],
 			& can2_motor[2],
-			& can2_motor[3],
-			& can2_motor[4],
-			& can2_motor[5]
+			& can2_motor[3]
 	});
 	ctrl.Init(std::vector<Motor*>{
 		&can1_motor[0],
 			& can1_motor[1],
 			& can1_motor[2],
-			& can1_motor[3],
-			& can1_motor[4],
-			& can1_motor[5]
+			& can1_motor[3]
 	});
 
 	task.Init();

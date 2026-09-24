@@ -35,6 +35,7 @@ public:
 		PID pantile_PID[3] = { {0.04f,0.f,0.f},{0.05f,0.f,0.f}, {0.f,0.f,0.f} };
 		const float sensitivity = 2.5f;
 		bool aim = false;
+		void Control_Pantile(int32_t ch_yaw, int32_t ch_pitch);
 		void Keep_Pantile(float angleKeep, PANTILE::TYPE type, IMU frameOfReference);
 		void Update();
 	};
@@ -58,7 +59,6 @@ public:
 	SHOOTER shooter;
 	
 	static int16_t Setrange(const int16_t original, const int16_t range);
-	void Control_Pantile(int32_t ch_yaw, int32_t ch_pitch);
 	float GetDelta(float delta);
 	void Init(std::vector<Motor*> motor);
 	void init_dm();

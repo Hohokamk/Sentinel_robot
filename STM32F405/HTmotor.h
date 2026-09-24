@@ -35,7 +35,7 @@ constexpr auto MAXROLL = 15;//轮腿ROLL范围限制
 
 #define KT 1.4f
 enum { DM_ID1 = 0x01, DM_ID2, DM_ID3, DM_ID4, DM_ID5 };
-enum  POSITION { L_F, L_B, R_F, R_B, F_B };
+enum  POSITION { L_F, L_B, R_F, R_B, F_B ,Pitch,Yaw};
 enum  FUCTION_MODE { MIT, SPEED, P_S };
 typedef enum {
 	CAN_PACKET_SET_DUTY = 0, //占空比模式

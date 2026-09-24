@@ -32,7 +32,7 @@ void CONTROL::Init(std::vector<Motor*> motor)
 }
 
 
-void CONTROL::Control_Pantile(int32_t ch_yaw, int32_t ch_pitch)
+void CONTROL::PANTILE::Control_Pantile(int32_t ch_yaw, int32_t ch_pitch)
 {
 	
 }
