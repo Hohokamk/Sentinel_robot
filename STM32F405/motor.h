@@ -57,6 +57,8 @@ public:
 	int32_t mode{};
 	int round_count;
 	bool pd = 0, spinning = 0;//pd:单次拨弹 spinning:一秒八发
+	bool has_feedback = false;   // 收到过真实反馈帧（置位后永不复位）                                                       HELLO，如果你看到我了，那你很认真了
+	bool angle_latched = false;  // POS：目标角已锁存（置位后永不复位）
 	PID pid[2];
 	float Torque_constant_2006 = (0.18*10)/10000;
 	float setangle{}, angle[2]{},distance{}, initial_x{}, rota_angle{}, reset_rota_angle{}, delta_angle{};

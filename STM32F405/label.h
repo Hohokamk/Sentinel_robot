@@ -31,10 +31,11 @@
 class PARAMETER
 {
 public:
-
+	float dm_initial_pitch{}, dm_initial_yaw{};
 	float pitch_max{}, imu_pitch_max{}, pitch_min{}, imu_pitch_min{}, orgin_pitch{}, initial_pitch{}, initial_yaw{};
 	int32_t ace_speed{}, max_speed{}, rota_speed{};
 	int32_t pitch_speed{}, yaw_speed{};
+	float yaw_center{}, yaw_span{};
 
 	void Init();
 

@@ -22,6 +22,7 @@
 #include "motor.h"
 #include "RC.h"
 #include "control.h"
+#include "label.h"
 #include "judgement.h"
 #include "led.h"
 #include "HTmotor.h"
@@ -88,6 +89,7 @@ int main(void)
 	xuc.Init(&uart6, USART6, 115200);
 
 	para.Init();
+	ctrl.init_dm();
 
 	ctrl.Init(std::vector<Motor*>{
 		&can2_motor[0],

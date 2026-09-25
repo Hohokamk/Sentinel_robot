@@ -8,6 +8,7 @@
 class CONTROL final
 {
 public:
+	uint8_t chassis_num{}, pantile_num{}, shooter_num{}, supply_num{};
 	uint8_t init_DM = 0;
 	Motor* chassis_motor[CHASSIS_MOTOR_NUM]{};
 	Motor* pantile_motor[PANTILE_MOTOR_NUM]{};
@@ -59,6 +60,7 @@ public:
 	SHOOTER shooter;
 	
 	static int16_t Setrange(const int16_t original, const int16_t range);
+	static float ClampAngle(float setangle, float center, float span);
 	float GetDelta(float delta);
 	void Init(std::vector<Motor*> motor);
 	void init_dm();

@@ -127,6 +127,7 @@
         <PreferredTelnetPort>0</PreferredTelnetPort>
         <AlwaysPassSerialNumber>false</AlwaysPassSerialNumber>
         <SelectedCoreIndex xsi:nil="true" />
+        <LiveMemoryTimeout>5000</LiveMemoryTimeout>
       </Configuration>
     </DebugMethod>
     <AutoDetectRTOS>true</AutoDetectRTOS>

@@ -1,5 +1,6 @@
 #include "label.h"
 #include "HTmotor.h"
+#include "motor.h"
 #include "RC.h"
 #include "control.h"
 
@@ -17,7 +18,7 @@ void RC::OnRC()
 
 	if (Shift_mode())
 	{
-		ctrl.pantile.mark_yaw = (float)ctrl.pantile_motor[CONTROL::PANTILE::YAW]->sum_angle;
+		ctrl.pantile.mark_yaw = (float)ctrl.pantile_motor[CONTROL::PANTILE::YAW]->angle[now];
 		
 	}
 
@@ -84,8 +85,8 @@ void RC::RC_Control() {
 	if (ctrl.mode != CONTROL::RESET)
 	{
 
-		ctrl.chassis.speedx = rc.ch[3] * 4000.f / 660.f;
-		ctrl.chassis.speedy = -1 * rc.ch[2] * 4000.f / 660.f;
+		ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
+		ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
 		ctrl.chassis.speedz = 0;
 
 		//ctrl.chassis.Keep_Direction();
@@ -93,8 +94,7 @@ void RC::RC_Control() {
 		switch (ctrl.mode)
 		{
 		case CONTROL::ROTATION://小陀螺
-			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
-			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
+			
 			ctrl.chassis.speedz = 1000;
 			break;
 
@@ -104,18 +104,15 @@ void RC::RC_Control() {
 			break;
 
 		case CONTROL::SEPARATE://底盘与云台分离，底盘不受云台影响
-			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
-			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
+			
 			break;
 
 		case CONTROL::AUTOAIM://自动瞄准	
-			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
-			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
+			
 			break;
 
 		case CONTROL::FIRE://射击
-			ctrl.chassis.speedx = rc.ch[1] * para.max_speed / 660.f;
-			ctrl.chassis.speedy = rc.ch[0] * para.max_speed / 660.f;
+			
 			break;
 
 		case CONTROL::STOP://停止
@@ -125,7 +122,7 @@ void RC::RC_Control() {
 			break;
 
 		case CONTROL::SPINNING://旋转
-			ctrl.chassis.speedz = rc.ch[0] * para.max_speed / 660.f;
+			ctrl.chassis.speedz = rc.ch[2] * para.max_speed / 660.f;
 			break;
 
 		default:
@@ -141,13 +138,11 @@ void RC::RC_Control() {
 		can1_motor[2].setspeed = 0;
 		can1_motor[3].setspeed = 0;
 		
-		can2_motor[0].setspeed = 0;
-		can2_motor[1].setspeed = 0;
-		can2_motor[2].setspeed = 0;
-		can2_motor[3].setspeed = 0;
+		
 		
 		DMmotor[0].setSpeed = 0;
 		DMmotor[1].setSpeed = 0;
+		can1_motor[3].setangle = can1_motor[3].angle[now];
 	}
 }
 
