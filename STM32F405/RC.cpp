@@ -96,8 +96,8 @@ void RC::RC_Control() {
 		case CONTROL::ROTATION://小陀螺
 			ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
 			ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
-			ctrl.chassis.speedz = para.rota_speed;             // 不硬编码 1000
-			ctrl.pantile.Control_Pantile(0, rc.ch[3],rc.ch[2]);
+			ctrl.chassis.speedz = rc.ch[2];//para.rota_speed;             // 不硬编码 1000
+			ctrl.pantile.Control_Pantile(0, 0, rc.ch[3]);//(0, rc.ch[3],rc.ch[2]);
 			break;
 
 		case CONTROL::FOLLOW://正方向为云台方向，跟随云台视角
@@ -136,7 +136,7 @@ void RC::RC_Control() {
 			break;
 
 		case CONTROL::SPINNING://超级雷霆大转盘
-			ctrl.chassis.speedx = rc.ch[0] * para.max_speed / 660.f; //底盘旋转
+			ctrl.chassis.speedz = rc.ch[0] * para.max_speed / 660.f; //底盘旋转
 			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3], rc.ch[1]);         // 大yaw，小yaw，pitch
 			break;
 

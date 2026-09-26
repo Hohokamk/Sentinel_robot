@@ -103,10 +103,10 @@ void CONTROL::CHASSIS::Update()
 	// ② 45° X 布局逆解（数组下标 = 你的电机编号 - 1）
 	const float K = 1.0f;
 	float w[4];
-	w[0] = vx - vy - K * wz;   // 1 左前
-	w[1] = vx + vy + K * wz;   // 2 右前
-	w[2] = vx - vy + K * wz;   // 3 右后
-	w[3] = vx + vy - K * wz;   // 4 左后
+	w[0] = -vx - vy + K * wz;   // 1 左前
+	w[1] = +vx - vy + K * wz;   // 2 右前
+	w[2] = +vx + vy + K * wz;   // 3 右后
+	w[3] = -vx + vy + K * wz;   // 4 左后
 
 	// ③ 下发，顺手限到各自 maxspeed
 	for (int i = 0; i < CHASSIS_MOTOR_NUM; i++)
