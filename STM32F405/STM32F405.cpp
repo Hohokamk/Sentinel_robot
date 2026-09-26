@@ -83,10 +83,10 @@ int main(void)
 	can2.Init(CAN2);
 	timer.Init(BASE, TIM3, 1000).BaseInit();
 
-	imu_pantile.Init(&uart1, USART1, 115200, CH010);
-	rc.Init(&uart2, USART2, 100000);
-	power.Init(&uart5,UART5,9600);
-	xuc.Init(&uart6, USART6, 115200);
+	imu_pantile.Init(&uart5, UART5, 115200, CH010);
+	rc.Init(&uart1, USART1, 100000);
+	power.Init(&uart4,UART4,9600);
+	xuc.Init(&uart3, USART3, 115200);
 
 	para.Init();
 	ctrl.init_dm();

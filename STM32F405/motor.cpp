@@ -122,10 +122,7 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 	}
 	else if (mode == POS)
 	{
-		if (!has_feedback)
-		{
-			current = 0;                              // 从没收到过真反馈 → 绝不出力
-		}
+		if (!has_feedback) current = 0;                              // 从没收到过真反馈 → 绝不出力
 		else
 		{
 			if (!angle_latched)                       // 只执行一次
@@ -133,8 +130,6 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 				setangle = angle[now];                // 把目标钉在当前位置
 				angle_latched = true;
 			}
-
-
 			float pos_error = (float)getdeltaa((int16_t)(setangle - angle[now]));  // 编码值，已取最短路径
 			pos_error = mechanicalToDegree(pos_error);                             // 换算成「度」
 
@@ -143,20 +138,9 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 
 			current += pid[speed].Delta(speed_ref - curspeed);                     // 内环：增量式（Δ 累加）
 
-			//float speed_ref = -0.5f;                   // 第一版：固定目标转速，纯验证用
+			//float speed_ref = -0.5f;                   // 测试下层：固定目标转速，纯验证用
 			//current += (int32_t)pid[speed].Delta(speed_ref - curspeed);
 		}
-
-
-
-		//这是正式的pid代码，上面的为测试代码
-		//float pos_error = (float)getdeltaa((int16_t)(setangle - angle[now]));  // 编码值，已取最短路径
-		//pos_error = mechanicalToDegree(pos_error);                             // 换算成「度」
-
-		//float speed_ref = pid[position].Position(pos_error, 1000.f);           // 外环：位置式（绝对输出）
-		//speed_ref = std::max(std::min(speed_ref, (float)maxspeed), -(float)maxspeed);
-
-		//current += pid[speed].Delta(speed_ref - curspeed);                     // 内环：增量式（Δ 累加）
 	}
 	else if (mode == SPD)
 	{

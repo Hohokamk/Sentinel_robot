@@ -33,10 +33,14 @@ public:
 	{
 		enum TYPE { YAW, PITCH };
 		float mark_pitch{}, mark_yaw{};
+		float yaw_speed_out = 0.0f;
 		PID pantile_PID[3] = { {0.04f,0.f,0.f},{0.05f,0.f,0.f}, {0.f,0.f,0.f} };
 		const float sensitivity = 2.5f;
 		bool aim = false;
-		void Control_Pantile(int32_t ch_yaw, int32_t ch_pitch);
+		bool pitch_ready = false;
+		float pitch0 = 0.0f;
+		void Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int32_t ch_dm_yaw);
+		//void Control_Pantile(int32_t ch_yaw, int32_t ch_pitch);
 		void Keep_Pantile(float angleKeep, PANTILE::TYPE type, IMU frameOfReference);
 		void Update();
 	};

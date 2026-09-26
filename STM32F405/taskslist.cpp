@@ -10,6 +10,7 @@
 #include "delay.h"
 #include "HTmotor.h"
 #include "Power_read.h"
+static CAN* const dm_bus[2] = { &can1, &can2 };   // DMmotor[i] 所在的总线
 //extern float Kp = 10;
 //extern float Kd = 0.6;
 extern int start_flag;
@@ -86,7 +87,7 @@ void MotorUpdateTask(void* pvParameters)
 
 		for (uint8_t i = 0; i < sizeof(DMmotor) / sizeof(DMmotor[0]); i++)
 			DMmotor[i].State_Decode(can2.jointidata)
-			.DMmotor_Ontimer(DMmotor[i].Kp, DMmotor[i].Kd, can2.jointpdata[i]);
+			.DMmotor_Ontimer(DMmotor[i].Kp, DMmotor[i].Kd, dm_bus[i]->jointpdata[i]);
 
 
 
@@ -105,7 +106,7 @@ void CanTransimtTask(void* pvParameters)
 		switch ((timer.counter++) % 3)
 		{
 		case 0:
-				DMmotor[0].DMmotor_transmit(can2);
+				DMmotor[0].DMmotor_transmit(can1);
 				DMmotor[1].DMmotor_transmit(can2);
 			break;
 		case 1:
@@ -155,7 +156,7 @@ void ArmTask(void* pvParameters)
 	while (true)
 	{
 		//初始化达妙电机
-		DMmotor[0].DMmotorinit(can2);
+		DMmotor[0].DMmotorinit(can1);
 		DMmotor[1].DMmotorinit(can2);
 		power.Send();
 		vTaskDelay(100);

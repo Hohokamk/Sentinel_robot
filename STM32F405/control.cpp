@@ -57,11 +57,25 @@ float CONTROL::ClampAngle(float setangle, float center, float span)
 	return setangle;
 }
 
-
-
-void CONTROL::PANTILE::Control_Pantile(int32_t ch_yaw, int32_t ch_pitch)
+void CONTROL::PANTILE::Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int32_t ch_dm_yaw)
 {
-	
+	// 1. 大疆 Yaw 轴（位置式累加）
+	Motor* y = ctrl.pantile_motor[PANTILE::TYPE::YAW];
+	if (y && y->has_feedback)
+	{
+		// 满杆 180°/s，5ms 周期
+		const float yaw_rate = 8192.f * 0.5f;
+		// 摇杆有推量时累加目标角度；摇杆回中(0)时目标角度自然保持不变
+		y->setangle += -3*(float)ch_dji_yaw / 660.f * yaw_rate * 0.005f;
+	}
+
+	// 2. 达妙 Pitch 轴（位置模式） 
+	mark_pitch += -(float)ch_pitch / 660.f * (PI * 0.5f) * 0.005f;
+
+	// 3. 达妙 Yaw 轴（纯速度模式）
+	// 速度模式：摇杆推多少就给多大角速度，传 0 就立刻刹停
+	const float max_dm_speed = PI; // 最大 180°/s
+	yaw_speed_out = 2*(float)ch_dm_yaw / 660.f * max_dm_speed;
 }
 
 void CONTROL::PANTILE::Keep_Pantile(float angleKeep, PANTILE::TYPE type,IMU frameOfReference)
@@ -108,7 +122,20 @@ void CONTROL::PANTILE::Update()
 
 	if (ctrl.pantile_motor[PANTILE::TYPE::YAW])
 		ctrl.pantile_motor[PANTILE::TYPE::YAW]->setangle =
-		ClampAngle(ctrl.pantile_motor[PANTILE::TYPE::YAW]->setangle, para.yaw_center, para.yaw_span);
+		ClampAngle(ctrl.pantile_motor[PANTILE::TYPE::YAW]->setangle, para.yaw_center, para.yaw_span);// 钳到 ±半宽
+
+	// 2. 达妙 Pitch 保护与更新
+	if ((can2.jointidata[0][0] & 0x0F) == (DMmotor[0].ID & 0x0F))
+	{
+		if (!pitch_ready) { mark_pitch = DMmotor[0].pos; pitch_ready = true; }
+		LIMIT_MIN_MAX(mark_pitch, pitch0 - 0.35f, pitch0 + 0.35f);   // 首测：离起点只允许 ±20°
+		DMmotor[0].setPos = mark_pitch;
+		DMmotor[0].setSpeed = 1.5f;
+	}
+
+	// 3. 达妙 Yaw 下发速度指令
+	// 如果上层传 0，这里就会下发 0 rad/s，电机依靠自身的阻尼和速度环稳稳刹住
+	DMmotor[1].setSpeed = yaw_speed_out;
 
 }
 

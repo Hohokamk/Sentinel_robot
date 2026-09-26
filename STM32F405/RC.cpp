@@ -21,7 +21,6 @@ void RC::OnRC()
 		ctrl.pantile.mark_yaw = (float)ctrl.pantile_motor[CONTROL::PANTILE::YAW]->angle[now];
 		
 	}
-
 }
 
 void RC::OnPC()
@@ -85,34 +84,49 @@ void RC::RC_Control() {
 	if (ctrl.mode != CONTROL::RESET)
 	{
 
-		ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
-		ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
+		
 		ctrl.chassis.speedz = 0;
+		ctrl.shooter.openRub = false;
+		ctrl.shooter.supply_bullet = false;
 
 		//ctrl.chassis.Keep_Direction();
 
 		switch (ctrl.mode)
 		{
 		case CONTROL::ROTATION://小陀螺
-			
-			ctrl.chassis.speedz = 1000;
+			ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
+			ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
+			ctrl.chassis.speedz = para.rota_speed;             // 不硬编码 1000
+			ctrl.pantile.Control_Pantile(0, rc.ch[3],rc.ch[2]);
 			break;
 
 		case CONTROL::FOLLOW://正方向为云台方向，跟随云台视角
+			ctrl.chassis.speedx = 0;
+			ctrl.chassis.speedy = 0;
 			//先要读取云台的角度，根据云台的方向计算出具体的speedx和speedy
-			ctrl.chassis.Keep_Direction();
+			ctrl.chassis.Keep_Direction();//重点是写这个按照云台的角度来计算出speedx和speedy，以云台的角度为参考系
+			//其实就是重新计算speedx和speedy，把之前的覆盖
+			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3],0);
 			break;
 
 		case CONTROL::SEPARATE://底盘与云台分离，底盘不受云台影响
-			
+			ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
+			ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
+			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3],0);
 			break;
 
 		case CONTROL::AUTOAIM://自动瞄准	
-			
+			ctrl.chassis.speedx = pc.x * para.max_speed / 660.f;
+			ctrl.chassis.speedy = -pc.y * para.max_speed / 660.f;//这是写给pc的接口，rc的不用管
+			//这里还要写射击，给pc接管
 			break;
 
 		case CONTROL::FIRE://射击
-			
+			ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
+			ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
+			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3],0);
+			ctrl.shooter.openRub = true;                       // 意图交给 SHOOTER::Update()
+			//这里要重新分配ch[0]和ch[1]的值，作为射击的控制，射击的时候底盘可以不动
 			break;
 
 		case CONTROL::STOP://停止
@@ -121,8 +135,9 @@ void RC::RC_Control() {
 			ctrl.chassis.speedz = 0;
 			break;
 
-		case CONTROL::SPINNING://旋转
-			ctrl.chassis.speedz = rc.ch[2] * para.max_speed / 660.f;
+		case CONTROL::SPINNING://超级雷霆大转盘
+			ctrl.chassis.speedx = rc.ch[0] * para.max_speed / 660.f; //底盘旋转
+			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3], rc.ch[1]);         // 大yaw，小yaw，pitch
 			break;
 
 		default:
@@ -133,16 +148,18 @@ void RC::RC_Control() {
 		}
 	}
 	else {
-		can1_motor[0].setspeed = 0;
-		can1_motor[1].setspeed = 0;
-		can1_motor[2].setspeed = 0;
-		can1_motor[3].setspeed = 0;
+		ctrl.chassis.speedx = 0;
+		ctrl.chassis.speedy = 0;
+		ctrl.chassis.speedz = 0;//这里不能写setspeed,那个只能在电机的update里写
 		
+		if (ctrl.pantile_motor[CONTROL::PANTILE::TYPE::YAW])
+			ctrl.pantile_motor[CONTROL::PANTILE::TYPE::YAW]->setangle =
+			ctrl.pantile_motor[CONTROL::PANTILE::TYPE::YAW]->angle[now];
 		
-		
-		DMmotor[0].setSpeed = 0;
-		DMmotor[1].setSpeed = 0;
-		can1_motor[3].setangle = can1_motor[3].angle[now];
+		ctrl.shooter.openRub = false;
+		ctrl.shooter.supply_bullet = false;
+
+		ctrl.pantile.Control_Pantile(0, 0, 0);
 	}
 }
 
