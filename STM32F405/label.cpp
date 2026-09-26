@@ -11,9 +11,10 @@ void PARAMETER::Init()
 	pitch_speed = 2, yaw_speed = 2;
 	dm_initial_pitch = 0.f, dm_initial_yaw = 0.f;
 	yaw_center = 8096.f, yaw_span = 1896.f;
+	bullet_step = 42130.29f;bullet_lead_max = 84260.58f;
+	dm_pitch_min = -0.60f;   
+	dm_pitch_max = +0.55f;   
 }
-
-
 
 
 /*

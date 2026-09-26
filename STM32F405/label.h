@@ -36,6 +36,9 @@ public:
 	int32_t ace_speed{}, max_speed{}, rota_speed{};
 	int32_t pitch_speed{}, yaw_speed{};
 	float yaw_center{}, yaw_span{};
+	float bullet_step{}; float bullet_lead_max{};
+	float dm_pitch_min{}; 
+	float dm_pitch_max{};
 
 	void Init();
 

@@ -75,7 +75,10 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 	this->StatusIdentifier(this->torque_current);
 	this->angle[now] = getword(idata[trainsmit_or_receive_ID][0], idata[trainsmit_or_receive_ID][1]);
 	this->temperature = idata[trainsmit_or_receive_ID][6];
-	if (this->temperature != 0) this->has_feedback = true;   // 用温度帧来判断是不是第一次调用！！！！真帧才带温度；上电零缓冲不会置位
+	if (this->temperature != 0
+		|| idata[trainsmit_or_receive_ID][0] != 0
+		|| idata[trainsmit_or_receive_ID][1] != 0)
+		this->has_feedback = true;// 用温度帧来判断是不是第一次调用！！！！真帧才带温度；上电零缓冲不会置位
 	//Get currrent speed
 
 	motor_status = 0;
@@ -99,48 +102,56 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 	//20220121--hz
 	if (mode == ACE)
 	{
-		if (spinning)
-		{
-		}
-		else {
-			if (need_curcircle > 0)
-			{
-			}
-			else if (need_curcircle <= 0)
-			{
-			}
-		}
-		if (setspeed == 0 && curspeed == 0)
-		{
-			motor_status = 1;
-			motor_angle_status = angle[0];
-		}
-		if (motor_status == 1 && fabs(motor_angle_status - angle[0]) < 50)
-		{
-			current = 0;
-		}
+		
 	}
 	else if (mode == POS)
 	{
-		if (!has_feedback) current = 0;                              // 从没收到过真反馈 → 绝不出力
+
+		if (!has_feedback) current = 0;
 		else
 		{
-			if (!angle_latched)                       // 只执行一次
+			if (!angle_latched)
 			{
-				setangle = angle[now];                // 把目标钉在当前位置
+				if (use_sum_angle)                       // 多圈：把累积基准对齐到此刻
+				{
+					sum_angle = 0;
+					angle[pre] = angle[now];             // ← 关键，见下
+					setangle = 0.f;
+				}
+				else setangle = angle[now];              // 云台：单圈绝对角
 				angle_latched = true;
 			}
-			float pos_error = (float)getdeltaa((int16_t)(setangle - angle[now]));  // 编码值，已取最短路径
-			pos_error = mechanicalToDegree(pos_error);                             // 换算成「度」
 
-			float speed_ref = pid[position].Position(pos_error, 1000.f);           // 外环：位置式（绝对输出）
+			float raw = use_sum_angle ? (setangle - (float)sum_angle)
+				: (float)getdeltaa((int16_t)(setangle - angle[now]));
+			float pos_error = mechanicalToDegree(raw);
+
+			float speed_ref = pid[position].Position(pos_error, 1000.f);
 			speed_ref = std::max(std::min(speed_ref, (float)maxspeed), -(float)maxspeed);
-
-			current += pid[speed].Delta(speed_ref - curspeed);                     // 内环：增量式（Δ 累加）
-
-			//float speed_ref = -0.5f;                   // 测试下层：固定目标转速，纯验证用
-			//current += (int32_t)pid[speed].Delta(speed_ref - curspeed);
+			current += pid[speed].Delta(speed_ref - curspeed);
 		}
+
+
+
+		//if (!has_feedback) current = 0;                              // 从没收到过真反馈 → 绝不出力
+		//else
+		//{
+		//	if (!angle_latched)                       // 只执行一次
+		//	{
+		//		setangle = angle[now];                // 把目标钉在当前位置
+		//		angle_latched = true;
+		//	}
+		//	float pos_error = (float)getdeltaa((int16_t)(setangle - angle[now]));  // 编码值，已取最短路径
+		//	pos_error = mechanicalToDegree(pos_error);                             // 换算成「度」
+
+		//	float speed_ref = pid[position].Position(pos_error, 1000.f);           // 外环：位置式（绝对输出）
+		//	speed_ref = std::max(std::min(speed_ref, (float)maxspeed), -(float)maxspeed);
+
+		//	current += pid[speed].Delta(speed_ref - curspeed);                     // 内环：增量式（Δ 累加）
+
+		//	//float speed_ref = -0.5f;                   // 测试下层：固定目标转速，纯验证用
+		//	//current += (int32_t)pid[speed].Delta(speed_ref - curspeed);
+		//}
 	}
 	else if (mode == SPD)
 	{

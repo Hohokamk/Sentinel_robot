@@ -55,8 +55,9 @@ public:
 		bool fraction = false;
 		bool fullheat_shoot = false;
 		bool heat_ulimit = false;
-		int16_t shoot_speed = 6000;
+		int16_t shoot_speed = 5000;
 		void Update();
+		int32_t trig_raw{}; bool trig{}; bool trig_pre{}; uint16_t hold_ms{}; uint16_t rate_ms{};// 发射机构要用的：触发器：原始值、当前值、上次值、保持时间、间隔时间
 	};
 
 	CHASSIS chassis;

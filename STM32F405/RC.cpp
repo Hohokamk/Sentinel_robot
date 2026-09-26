@@ -84,7 +84,7 @@ void RC::RC_Control() {
 	if (ctrl.mode != CONTROL::RESET)
 	{
 
-		
+		ctrl.shooter.trig_raw = 0;
 		ctrl.chassis.speedz = 0;
 		ctrl.shooter.openRub = false;
 		ctrl.shooter.supply_bullet = false;
@@ -122,8 +122,11 @@ void RC::RC_Control() {
 			break;
 
 		case CONTROL::FIRE://射击
-			ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
-			ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
+			//ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
+			ctrl.chassis.speedx = 0;
+			ctrl.chassis.speedy = 0;//-1 * rc.ch[0] * 4000.f / 660.f;
+			ctrl.chassis.speedz = 0;
+			ctrl.shooter.trig_raw = -rc.ch[1];         // 把 ch[1] 的模拟量传入扳机
 			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3],0);
 			ctrl.shooter.openRub = true;                       // 意图交给 SHOOTER::Update()
 			//这里要重新分配ch[0]和ch[1]的值，作为射击的控制，射击的时候底盘可以不动
@@ -133,9 +136,13 @@ void RC::RC_Control() {
 			ctrl.chassis.speedx = 0;
 			ctrl.chassis.speedy = 0;
 			ctrl.chassis.speedz = 0;
+			ctrl.pantile.Control_Pantile(0, 0, 0);
+			ctrl.shooter.trig_raw = 0;
 			break;
 
 		case CONTROL::SPINNING://超级雷霆大转盘
+			ctrl.chassis.speedx = 0;
+			ctrl.chassis.speedy = 0;
 			ctrl.chassis.speedz = rc.ch[0] * para.max_speed / 660.f; //底盘旋转
 			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3], rc.ch[1]);         // 大yaw，小yaw，pitch
 			break;
@@ -151,12 +158,14 @@ void RC::RC_Control() {
 		ctrl.chassis.speedx = 0;
 		ctrl.chassis.speedy = 0;
 		ctrl.chassis.speedz = 0;//这里不能写setspeed,那个只能在电机的update里写
+		ctrl.shooter.trig_raw = 0;
 		
 		if (ctrl.pantile_motor[CONTROL::PANTILE::TYPE::YAW])
 			ctrl.pantile_motor[CONTROL::PANTILE::TYPE::YAW]->setangle =
 			ctrl.pantile_motor[CONTROL::PANTILE::TYPE::YAW]->angle[now];
 		
 		ctrl.shooter.openRub = false;
+		ctrl.shooter.trig_raw = 0;                // 确保退出开火时绝不留残余信号
 		ctrl.shooter.supply_bullet = false;
 
 		ctrl.pantile.Control_Pantile(0, 0, 0);

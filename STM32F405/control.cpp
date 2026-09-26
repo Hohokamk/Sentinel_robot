@@ -66,7 +66,7 @@ void CONTROL::PANTILE::Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int
 		// 满杆 180°/s，5ms 周期
 		const float yaw_rate = 8192.f * 0.5f;
 		// 摇杆有推量时累加目标角度；摇杆回中(0)时目标角度自然保持不变
-		y->setangle += -3*(float)ch_dji_yaw / 660.f * yaw_rate * 0.005f;
+		y->setangle += -(float)ch_dji_yaw / 660.f * yaw_rate * 0.005f;
 	}
 
 	// 2. 达妙 Pitch 轴（位置模式） 
@@ -75,7 +75,7 @@ void CONTROL::PANTILE::Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int
 	// 3. 达妙 Yaw 轴（纯速度模式）
 	// 速度模式：摇杆推多少就给多大角速度，传 0 就立刻刹停
 	const float max_dm_speed = PI; // 最大 180°/s
-	yaw_speed_out = 2*(float)ch_dm_yaw / 660.f * max_dm_speed;
+	yaw_speed_out = (float)ch_dm_yaw / 660.f * max_dm_speed;
 }
 
 void CONTROL::PANTILE::Keep_Pantile(float angleKeep, PANTILE::TYPE type,IMU frameOfReference)
@@ -127,8 +127,8 @@ void CONTROL::PANTILE::Update()
 	// 2. 达妙 Pitch 保护与更新
 	if ((can2.jointidata[0][0] & 0x0F) == (DMmotor[0].ID & 0x0F))
 	{
-		if (!pitch_ready) { mark_pitch = DMmotor[0].pos; pitch_ready = true; }
-		LIMIT_MIN_MAX(mark_pitch, pitch0 - 0.35f, pitch0 + 0.35f);   // 首测：离起点只允许 ±20°
+		if (!pitch_ready) { mark_pitch = DMmotor[0].pos;pitch0 = mark_pitch; pitch_ready = true; }
+		LIMIT_MIN_MAX(mark_pitch, para.dm_pitch_min, para.dm_pitch_max);
 		DMmotor[0].setPos = mark_pitch;
 		DMmotor[0].setSpeed = 1.5f;
 	}
@@ -138,10 +138,58 @@ void CONTROL::PANTILE::Update()
 	DMmotor[1].setSpeed = yaw_speed_out;
 
 }
-
 void CONTROL::SHOOTER::Update()
 {
+	// ① 摩擦轮（不变）
 	
+	if (ctrl.shooter_motor[0])ctrl.shooter_motor[0]->setspeed = openRub ? shoot_speed : 0;
+	if (ctrl.shooter_motor[1])ctrl.shooter_motor[1]->setspeed = openRub ? -shoot_speed : 0;
+
+	/*for (int i = 0; i < SHOOTER_MOTOR_NUM; i++)
+		if (ctrl.shooter_motor[i])
+			ctrl.shooter_motor[i]->setspeed = openRub ? shoot_speed : 0;*/
+
+	// ② 弹速（③ 的判据，先算）
+	float sum = 0.f; int cnt = 0;
+	
+	const float v0 = ctrl.shooter_motor[0] ? fabsf((float)ctrl.shooter_motor[0]->curspeed) : 0.f;
+	const float v1 = ctrl.shooter_motor[1] ? fabsf((float)ctrl.shooter_motor[1]->curspeed) : 0.f;
+	const float rpm_avg = 0.5f * (v0 + v1);
+	
+
+	// ③ 扳机：阈值 + 迟滞（摇杆是模拟量）
+	const int16_t T_ON = 300, T_OFF = 200;
+	if (!trig && trig_raw > T_ON) trig = true;
+	if (trig && trig_raw < T_OFF) trig = false;
+
+	// ④ 短/长拨状态机
+	const uint16_t TICK = 5, T_ARM = 300, T_RATE = 125;
+	bool fire_pulse = false, fire_cont = false;
+	if (trig && !trig_pre) { fire_pulse = true; hold_ms = 0; rate_ms = T_RATE; }
+	else if (trig) { if (hold_ms < 60000) hold_ms += TICK; if (hold_ms >= T_ARM) fire_cont = true; }
+	trig_pre = trig;
+
+	// ⑤ 拨盘：POS 双环，累加 setangle
+	Motor* d = ctrl.supply_motor[0];
+	if (!d || !d->has_feedback || !d->angle_latched) return;   // 未就绪 → 别碰目标
+
+	const bool allow = openRub && rpm_avg > (float)shoot_speed * 0.8f;
+
+
+	if (fire_pulse && allow) d->setangle += -para.bullet_step;
+	if (fire_cont && allow)
+	{
+		if (rate_ms >= T_RATE) { rate_ms = 0; d->setangle += -para.bullet_step; }
+		else                     rate_ms += TICK;
+	}
+	else rate_ms = 0;
+
+	// ⑥ 超前钳制：防 windup
+	const float lead = d->setangle - (float)d->sum_angle;
+	if (lead > para.bullet_lead_max)
+		d->setangle = (float)d->sum_angle + para.bullet_lead_max;
+	if (lead < -para.bullet_lead_max)
+		d->setangle = (float)d->sum_angle - para.bullet_lead_max;
 }
 
 float CONTROL::CHASSIS::Ramp(float setval, float curval, uint32_t RampSlope)
