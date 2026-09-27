@@ -57,6 +57,8 @@ private:
 	BaseType_t pd_Rx, pd_Tx;
 	UART* m_uart;
 	uint8_t m_frame[UART_MAX_LEN]{};
+	uint16_t pc_timeout = 0;
+	uint16_t last_rx_count = 0;
 };
 
 extern RC rc;

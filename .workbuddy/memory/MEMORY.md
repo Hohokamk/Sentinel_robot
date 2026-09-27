@@ -34,14 +34,41 @@ ArmTask 100ms `DMmotorinit()`×2+`power.Send()`｜DecodeTask 5ms `rc.Decode`+`im
 
 ## 四、发射机构（POS 双环，已落地待上机）
 - `motor.h:62 use_sum_angle`｜`motor.cpp:110-124` POS 双路｜`can1_motor[2]` = `Motor(M2006,POS,supply,ID7,PID(20,0,0),PID(0.30,0,0))`｜`main()` 里 `can1_motor[2].use_sum_angle = true;`
-- `para.bullet_step=36864`（一发 = `8192×36/N`，N=8）/ `bullet_lead_max=73728`（2 发）
+- `para.bullet_step=42130.29`（一发 = `8192×36/N`，**N=7**）/ `bullet_lead_max=84260.58`（2 发）；单发与连发**已统一为 `-bullet_step`**
+- 射频红线（N=7）：8 发/s 需 2469 rpm（`maxspeed=3000` 的 82%）；纯满速上限 ≈9.7 发/s；单发最短 ≈103ms
 - `SHOOTER::Update()`（`control.cpp:142-191`）六段：摩擦轮 / 弹速 / 迟滞 / 长短拨 / POS 累加 / 超前钳制
 - 扳机 = ch[1]（**仅 FIRE 模式**）；RC 只写原值 `trig_raw`，阈值+迟滞全在 Update 内
 - 外环 `Kp=0.30` 纯 P → 一发 1620° → `speed_ref=486rpm` → τ≈0.56s → **约 3s 一发，太慢**（要 125ms 需 Kp≈3~6）
 
-## 五、进度（2026-09-26 深夜）
-✅ 底盘 / 云台 / POS 串级 / latch+ClampAngle / `CONTROL::Init()` / `init_dm()` / RC 各 mode / 达妙分总线 / `SHOOTER::Update()` 已写
-⬜ **上机调试中**：拨盘 POS 双环整定 + 达妙 Pitch 使能排查｜`ACE` 分支｜`Keep_Direction()`｜`Keep_Pantile()`｜`RC::OnPC()`｜judgement/supercap 接入
+## 四之二、上位机链路（XUC + RC::OnPC，2026-09-27 主线）
+
+> 哨兵标准控制方式 = **上位机自瞄**，不是遥控器。这条链路优先级高于 Keep_*。
+
+- 硬件：`xuc.Init(&uart3, USART3, 115200)`（`STM32F405.cpp:91`）已初始化；**`xuc.Decode()` / `xuc.Encode()` 零调用点**
+- 报文（`xuc.h:10-30`）：他机帧 `RxPacket{header=0xA5; checksum}` 只是占位；实际按**偏移硬解析**：`[1..4]pitch(度)`、`[5..8]yaw`、`[9..12]yaw_diff`、`[13..16]pitch_diff(度)`、`[17..20]distance`、`[21]fireadvice:1`、`[25..28]v_y`
+- 上报帧 `TxPacket{0x5A, detect_color:1, reset_tracker:1, reserved:6, roll/pitch/yaw(float), aim_x/y/z, checksum}` + CRC16
+- 两条发送路径：`UARTTransmit()`（`usart.cpp:517`，**HAL 阻塞轮询**，timeout 0xffff）/ `DMATransmit()`（`usart.cpp:507`）。两个 `DMmotorinit` 用阻塞版在 ArmTask(prio 1)、`CanTransimtTask`(prio 2) 会抢占 → 最长可卡 100ms 左右
+- `judgement.BuffData()` 用了 `m_uart->updateFlag` / `dataDmaNum`，但 `usart.cpp` 里**这两个成员从未被写**（ISR 只用 `xQueueOverwriteFromISR`）→ 恒 false，零调用所以无害
+
+### ⚠️ `xuc.cpp` 三处必修（2026-09-27 实读）
+1. **`u8_to_float()` 字节序反了**（`xuc.h:144-148`）：构造了 `ch[4]` 大端副本后**丢弃**，`memcpy(&s, p, 4)` 拿的是原始小端 → 所有 float 是垃圾。正解：直接 `memcpy`（= `xuc.h:150 FR4()`），或删掉 `u8_to_float` 统一用 `FR4`
+2. **字段名混用**（`xuc.cpp:33-39`）：成员函数内写 `xuc.xxx = ...` 灌的是**全局对象**，而 `:30-31` 的 `yaw_pre` 走 `this` → 同一函数两套绑定。虽当前只有一个 `xuc` 实例、结果碰巧对，但语义错。**统一去掉 `xuc.` 前缀**
+3. **`yaw_spd` 恒 0**（`xuc.cpp:30-31`）：`yaw_pre = yaw;` 后紧接 `yaw_spd = ((yaw - yaw_pre)/0.004)*2π/60;`，两语句间 `yaw` 未被赋值 → 差恒 0。且量纲错（`yaw` 是度，注释却写 rpm）。顺序必须：先 `yaw = ...`（第 34 行那句提到前面）→ 再算差 → 最后 `yaw_pre = yaw`
+
+### ⚠️ `HAL_UART_Transmit` 与 FreeRTOS 的嵌套临界区
+HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**中断上下文**里调 `HAL_UART_IRQHandler(&huart)`，若此时某任务正阻塞在 `HAL_UART_Transmit` 内 → 双方都看到 `HAL_BUSY` → 任务异常退出 / 中断丢失事件。⇒ **别在任务上下文用 `UARTTransmit`**，要么改 `DMATransmit`（纯寄存器操作，非阻塞），要么用 DMATx + TC 中断 + 信号量
+
+---
+
+## 五、进度（2026-09-27 16:10，用户报"主线基本写完"）
+✅ 底盘（逆解/限幅/RESET）· 云台三轴（两 yaw 位置 + Pitch 位置，限幅已实测）· POS 串级 + latch/ClampAngle · RC 9 组合 + 7 mode · 达妙分总线 · `SHOOTER::Update()` 六段 · `has_feedback` 兜底 · 单发/连发同号 · `lead` 双边钳制 · **`POS_DEADBAND=3.0f` 位置死区**（`motor.cpp:128-132`）
+🔧 **当前主线（用户定序）**：上位机链路 —— ① 修 `xuc.cpp` 三处（字节序 / 字段名 / `yaw_spd`）② `RC::OnPC()`（`xuc.Decode()` + `xuc.Encode()` 调用点 + 自瞄控制律）③ 再写 `Keep_Pantile` / `Keep_Direction`
+⬜ **暂不需要**：judgement · supercap · ACE 分支（用户明确"不需要用"）
+✅ `now_bullet_speed` 已被 `rpm_avg` 替代（剔除死变量）；`rpm_avg` 仍是 `Update()` 局部量
+💡 **`Keep_Direction` 用达妙 yaw**（用户 2026-09-27 定）：① 达妙 yaw **无机械限幅**、② IMU 装在**它控制的那个 yaw 轴上** → 该轴就是"底盘相对云台"的天然参考，不需要底盘 IMU（`imu_chassis` 从未 Init）
+⚠️ 但达妙 yaw 是 **SPEED 模式**（`setSpeed` = 角速度），不反馈位置 → 要么改成 P_S，要么用 `imu_pantile.GetAngleYaw()` 积分/直接取值当角度源
+
+**⚠️ 标定值是自洽性检查，不是需要保留的结论**：`dm_pitch_min/max`、`T_ON/T_OFF`、`POS_DEADBAND`、`bullet_step` 都会随机构/装配变。真正不变的是**推导链**（编码换算、阈值选择准则、迟滞必要性），写进记忆的是链不是数。
 
 ## 六、活跃陷阱
 - ⚠️ **越界别名**：`shooter_motor[2]`（`SHOOTER_MOTOR_NUM=2`）别名 = `supply_motor[0]`（拨盘）→ 弹速计算混入拨盘；同类：任何 `[i]` 超出容量宏都是静默别名
@@ -49,10 +76,10 @@ ArmTask 100ms `DMmotorinit()`×2+`power.Send()`｜DecodeTask 5ms `rc.Decode`+`im
 - ⚠️ **`setSpeed=0` 是天然保护**（`PANTILE::Update()` 里 `setSpeed=1.5f` 写在 guard **内部**）→ guard 不成立时 POS_VEL 限速 0，Pitch 只会不动。**不要把它挪到 guard 外**
 - ⚠️ 遥控断连 `Decode()` 提前 return → `ch/s[]`/`trig_raw` 保持旧值 → 车按最后指令跑 + 扳机卡在按下**无限连发**
 - ⚠️ `ArmTask`(prio 1) 与 `CanTransimtTask`(prio 2) 共用 `hcan.pTxMsg`（`CAN::Transmit` 非线程安全）→ 使能帧可能被打断；代码缺 `0xFB` 清错帧
-- ⚠️ 拨盘 `current` 增量式：误差归零后 `current` 冻结在上次值；`lead` **只有单边钳制**（冲过头会反向震荡）
-- ⚠️ 拨盘抖动 4 候选：①`sum_angle` 方向反（正反馈撞限位）②纯 P 极限环 ③ch[1] 停 200~300 反复上升沿 ④`allow` 被越界指针污染
-- ⚠️ 达妙 Pitch 无机械限位 clamp（固件只钳 ±4π）；`mark_pitch` 有 `pitch0±0.35` 但依赖 latch 正确
-- 达妙 Yaw 仅 `SPINNING` 有输入；`ROTATION` 的 `speedz=rc.ch[2]` 未换算；`AUTOAIM`/`default` 不调 `Control_Pantile`
+- ⚠️ 拨盘 `current` 增量式：误差归零后 `current` 冻结在上次值
+- ⚠️ 拨盘发抖（2026-09-27）：外环纯 P **无死区** → stick-slip 极限环；已在 `motor.cpp` 加 `POS_DEADBAND = 3.0f`（转子度）。⚠️ 该常量写在 POS 分支内，**M6020 yaw 共用**（直驱 → 输出 3° 死区）
+- ⚠️ 达妙 Pitch：`setPos` 只在 guard 成立时更新，否则残留上一帧值 → guard 用 `(jointidata&0x0F)==ID || pitch_ready` 兜底；`para.dm_pitch_min/max` 若框不住 `pos` 会瞬间被拽到边界。**单周期 guard 只能限制不在 guard 内的修改 → 目标值必须靠 `PANTILE::Update()` 自己钳制**
+- 达妙 Yaw 仅 `SPINNING`/`ROTATION` 有输入；`ROTATION` 的 `speedz=rc.ch[2]` **未换算**（唯一量纲不一致处）；`AUTOAIM` 不调 `Control_Pantile`
 - `can.cpp` 达妙接收分支**不分总线**；`GetPosition()` 恒返 0（读 `.pos`）；`Motor_Start/Stop/ZeroPosition` 无定义；`pid[2]` vs `speed2=2` 越界（零调用）；`main()` 的 `HAL_Init()` 顺序反；`imu.cpp` `Check()` 有分支无 return
 - `ControlTask` 用 `vTaskDelay(5)` 非 `vTaskDelayUntil` → `hold_ms` 计时偏长
 

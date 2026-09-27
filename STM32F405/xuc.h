@@ -48,6 +48,7 @@ public:
 	//Navigation
 	float speed_x = 0, speed_y = 0, prespeedx, prespeedy;
 	float yaw_bias = -2.7;
+	uint16_t rx_count = 0;
 
 	float x, y, z;
 	float vx, vy, vz;

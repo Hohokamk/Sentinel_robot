@@ -10,6 +10,7 @@
 #include "delay.h"
 #include "HTmotor.h"
 #include "Power_read.h"
+#include "xuc.h"
 static CAN* const dm_bus[2] = { &can1, &can2 };   // DMmotor[i] 所在的总线
 //extern float Kp = 10;
 //extern float Kd = 0.6;
@@ -130,10 +131,10 @@ void ControlTask(void* pvParameters)
 {
 	while (true)
 	{
+		rc.Update();
 		ctrl.chassis.Update();
 		ctrl.pantile.Update();
 		ctrl.shooter.Update();
-		rc.Update();
 		vTaskDelay(5);
 	}
 }
@@ -144,8 +145,8 @@ void DecodeTask(void* pvParameters)
 	while (true)
 	{
 		rc.Decode();
-
 		imu_pantile.Decode();
+		xuc.Decode();
 	
 		vTaskDelay(5);
 	}
@@ -159,6 +160,7 @@ void ArmTask(void* pvParameters)
 		DMmotor[0].DMmotorinit(can1);
 		DMmotor[1].DMmotorinit(can2);
 		power.Send();
+		if (ctrl.mode == CONTROL::AUTOAIM) xuc.Encode();
 		vTaskDelay(100);
 	}
 }

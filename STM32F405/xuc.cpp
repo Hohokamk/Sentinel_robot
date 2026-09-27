@@ -24,21 +24,23 @@ void XUC::Init(UART* huart, USART_TypeDef* Instance, uint32_t BaudRate)
 void XUC::Decode()
 {
 	pd_Rx = xQueueReceive((m_uart->UartQueueHandler), m_frame, NULL);
+	if (pd_Rx != pdTRUE) return;                        // 没数据就退出，别等
 	if (m_frame[0] == 0xA5)
 	{
 
-		yaw_pre = yaw;
-		yaw_spd = ((yaw - yaw_pre) / 0.004) * 2 * PI / 60;//0.004根据tasklist的发送频率 计算出来yaw_spd的单位是rpm
+		yaw = FR4(m_frame + 5);                                  // ① 先更新当前值
+		yaw_spd = ((yaw - yaw_pre) / 0.005) * 2 * PI / 60;       // ② 再求差
+		yaw_pre = yaw;                                           // ③ 最后保存
 
-		xuc.pitch = u8_to_float(m_frame + 1) * PI / 180.f;
-		xuc.yaw = u8_to_float(m_frame + 5);
-		xuc.yaw_diff = u8_to_float(m_frame + 9);
-		xuc.pitch_diff = u8_to_float(m_frame + 13) * PI / 180.f;
-		xuc.distance = u8_to_float(m_frame + 17);
-		xuc.fireadvice = m_frame[21] & 0x01;
-		xuc.v_y = u8_to_float(m_frame + 25);
+		pitch = FR4(m_frame + 1) * PI / 180.f;
+		yaw_diff = FR4(m_frame + 9);
+		pitch_diff = FR4(m_frame + 13) * PI / 180.f;
+		distance = FR4(m_frame + 17);
+		fireadvice = m_frame[21] & 0x01;
+		v_y = FR4(m_frame + 25);
 
 	}
+	++rx_count;
 }
 
 void XUC::Encode()
@@ -68,7 +70,8 @@ void XUC::Encode()
 	appendCRC16CheckSum(tx_data, packet_size);
 
 	// 发送数据
-	m_uart->UARTTransmit(tx_data, packet_size);
+	m_uart->DMATransmit(tx_data, packet_size);//AI说这个比下面那个好
+	//m_uart->UARTTransmit(tx_data, packet_size);
 }
 
 uint16_t XUC::getCRC16CheckSum(const uint8_t* pchMessage, uint32_t dwLength, uint16_t wCRC)

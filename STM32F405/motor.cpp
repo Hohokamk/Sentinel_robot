@@ -106,13 +106,12 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 	}
 	else if (mode == POS)
 	{
-
 		if (!has_feedback) current = 0;
 		else
 		{
 			if (!angle_latched)
 			{
-				if (use_sum_angle)                       // 多圈：把累积基准对齐到此刻
+				if (use_sum_angle)                       // 小yaw和拨弹轮的POS模式不同，拨弹轮不能回环，要多圈
 				{
 					sum_angle = 0;
 					angle[pre] = angle[now];             // ← 关键，见下
@@ -123,35 +122,15 @@ void Motor::Ontimer(uint8_t idata[][8], uint8_t* odata)//idate: receive;odate: t
 			}
 
 			float raw = use_sum_angle ? (setangle - (float)sum_angle)
-				: (float)getdeltaa((int16_t)(setangle - angle[now]));
+				: (float)getdeltaa((int16_t)(setangle - angle[now]));//只有小yaw的POS模式才会用到getdeltaa，拨弹轮的POS模式不需要回环
 			float pos_error = mechanicalToDegree(raw);
+
+			if (fabsf(pos_error) < pos_deadband) pos_error = 0.f;// 小死区，防震荡
 
 			float speed_ref = pid[position].Position(pos_error, 1000.f);
 			speed_ref = std::max(std::min(speed_ref, (float)maxspeed), -(float)maxspeed);
 			current += pid[speed].Delta(speed_ref - curspeed);
 		}
-
-
-
-		//if (!has_feedback) current = 0;                              // 从没收到过真反馈 → 绝不出力
-		//else
-		//{
-		//	if (!angle_latched)                       // 只执行一次
-		//	{
-		//		setangle = angle[now];                // 把目标钉在当前位置
-		//		angle_latched = true;
-		//	}
-		//	float pos_error = (float)getdeltaa((int16_t)(setangle - angle[now]));  // 编码值，已取最短路径
-		//	pos_error = mechanicalToDegree(pos_error);                             // 换算成「度」
-
-		//	float speed_ref = pid[position].Position(pos_error, 1000.f);           // 外环：位置式（绝对输出）
-		//	speed_ref = std::max(std::min(speed_ref, (float)maxspeed), -(float)maxspeed);
-
-		//	current += pid[speed].Delta(speed_ref - curspeed);                     // 内环：增量式（Δ 累加）
-
-		//	//float speed_ref = -0.5f;                   // 测试下层：固定目标转速，纯验证用
-		//	//current += (int32_t)pid[speed].Delta(speed_ref - curspeed);
-		//}
 	}
 	else if (mode == SPD)
 	{
@@ -194,7 +173,7 @@ void Motor::getmax(const type_t type)
 	{
 	case M3508:
 		maxcurrent = 16384;
-		maxspeed = 2000;
+		maxspeed = 5000;
 		break;
 	case M3510:
 		maxcurrent = 13000;

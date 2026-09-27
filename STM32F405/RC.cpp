@@ -3,6 +3,7 @@
 #include "motor.h"
 #include "RC.h"
 #include "control.h"
+#include "xuc.h"
 
 void RC::Init(UART* huart, USART_TypeDef* Instance, const uint32_t BaudRate)
 {
@@ -25,7 +26,30 @@ void RC::OnRC()
 
 void RC::OnPC()
 {
-	;
+	// ── ① 只在 AUTOAIM 模式接管，其余模式完全不碰
+	if (ctrl.mode != CONTROL::AUTOAIM) return;
+
+	// ── ② 数据新鲜度：rx_count 变了就重置超时，否则递减
+	if (xuc.rx_count != last_rx_count) {
+		last_rx_count = xuc.rx_count;
+		pc_timeout = TIMEOUT_TICKS;          // 例：50 → 50×5ms = 250ms
+	}
+	else if (pc_timeout > 0) --pc_timeout;
+
+	// ── ③ 失联 → 本帧什么都不做（保留 RC 写的意图），并让摩擦轮停
+	if (pc_timeout == 0) {
+		ctrl.shooter.openRub = false;
+		ctrl.shooter.auto_shoot = false;
+		return;
+	}
+
+	// ── ④ pitch：位置直给
+	ctrl.pantile.mark_pitch = xuc.pitch;
+
+	// ── ⑤ 开火
+	ctrl.shooter.openRub = true;
+	ctrl.shooter.auto_shoot = xuc.fireadvice;
+	
 }
 
 void RC::Update()

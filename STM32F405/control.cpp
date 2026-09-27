@@ -59,14 +59,13 @@ float CONTROL::ClampAngle(float setangle, float center, float span)
 
 void CONTROL::PANTILE::Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int32_t ch_dm_yaw)
 {
-	// 1. 大疆 Yaw 轴（位置式累加）
-	Motor* y = ctrl.pantile_motor[PANTILE::TYPE::YAW];
-	if (y && y->has_feedback)
+	// 1. 大疆Yaw/位置累加
+	if (ctrl.pantile_motor[PANTILE::TYPE::YAW] && ctrl.pantile_motor[PANTILE::TYPE::YAW]->has_feedback)//feedback和他本身不为空
 	{
 		// 满杆 180°/s，5ms 周期
 		const float yaw_rate = 8192.f * 0.5f;
 		// 摇杆有推量时累加目标角度；摇杆回中(0)时目标角度自然保持不变
-		y->setangle += -(float)ch_dji_yaw / 660.f * yaw_rate * 0.005f;
+		ctrl.pantile_motor[PANTILE::TYPE::YAW]->setangle += -(float)ch_dji_yaw / 660.f * yaw_rate * 0.005f;
 	}
 
 	// 2. 达妙 Pitch 轴（位置模式） 
@@ -119,7 +118,7 @@ void CONTROL::CHASSIS::Update()
 
 void CONTROL::PANTILE::Update()
 {
-
+	// 1. 6020yaw
 	if (ctrl.pantile_motor[PANTILE::TYPE::YAW])
 		ctrl.pantile_motor[PANTILE::TYPE::YAW]->setangle =
 		ClampAngle(ctrl.pantile_motor[PANTILE::TYPE::YAW]->setangle, para.yaw_center, para.yaw_span);// 钳到 ±半宽
@@ -140,47 +139,61 @@ void CONTROL::PANTILE::Update()
 }
 void CONTROL::SHOOTER::Update()
 {
-	// ① 摩擦轮（不变）
+	// ① 摩擦轮开始转
 	
 	if (ctrl.shooter_motor[0])ctrl.shooter_motor[0]->setspeed = openRub ? shoot_speed : 0;
 	if (ctrl.shooter_motor[1])ctrl.shooter_motor[1]->setspeed = openRub ? -shoot_speed : 0;
 
-	/*for (int i = 0; i < SHOOTER_MOTOR_NUM; i++)
-		if (ctrl.shooter_motor[i])
-			ctrl.shooter_motor[i]->setspeed = openRub ? shoot_speed : 0;*/
 
-	// ② 弹速（③ 的判据，先算）
+	// ② 摩擦轮转速达标检测点（③ 的判据，先算）
 	float sum = 0.f; int cnt = 0;
 	
 	const float v0 = ctrl.shooter_motor[0] ? fabsf((float)ctrl.shooter_motor[0]->curspeed) : 0.f;
 	const float v1 = ctrl.shooter_motor[1] ? fabsf((float)ctrl.shooter_motor[1]->curspeed) : 0.f;
-	const float rpm_avg = 0.5f * (v0 + v1);
+	const float rpm_avg = 0.5f * (v0 + v1);//两个轮子的平均转速
 	
 
-	// ③ 扳机：阈值 + 迟滞（摇杆是模拟量）
+	// ③ 扳机：死区阈值 + 迟滞（因为摇杆是模拟信号，要转换成数字信号）
 	const int16_t T_ON = 300, T_OFF = 200;
 	if (!trig && trig_raw > T_ON) trig = true;
 	if (trig && trig_raw < T_OFF) trig = false;
 
+	const bool trig_eff = trig || ctrl.shooter.auto_shoot;   // 自瞄开火和手动扳机等效
+
 	// ④ 短/长拨状态机
 	const uint16_t TICK = 5, T_ARM = 300, T_RATE = 125;
 	bool fire_pulse = false, fire_cont = false;
-	if (trig && !trig_pre) { fire_pulse = true; hold_ms = 0; rate_ms = T_RATE; }
-	else if (trig) { if (hold_ms < 60000) hold_ms += TICK; if (hold_ms >= T_ARM) fire_cont = true; }
-	trig_pre = trig;
+
+	if (trig_eff && !trig_pre) { fire_pulse = true; hold_ms = 0; rate_ms = T_RATE; }
+	else if (trig_eff) { if (hold_ms < 60000) hold_ms += TICK; if (hold_ms >= T_ARM) fire_cont = true; }
+	trig_pre = trig_eff;//把下面的替换了
+
+
+
+	//if (trig && !trig_pre) { 
+	//	fire_pulse = true; 
+	//	hold_ms = 0; 
+	//	rate_ms = T_RATE; }//上升沿，fire_pulse为脉冲，只有在5毫秒内为true,脉冲触发
+	//else if (trig) { 
+	//	if (hold_ms < 60000) hold_ms += TICK; //开始计时，为连发做准备
+	//	if (hold_ms >= T_ARM) fire_cont = true;//时间大于300，连发
+	//}
+
+
+	trig_pre = trig;//上升沿结束
 
 	// ⑤ 拨盘：POS 双环，累加 setangle
-	Motor* d = ctrl.supply_motor[0];
+	Motor* d = ctrl.supply_motor[0];//拨弹轮
 	if (!d || !d->has_feedback || !d->angle_latched) return;   // 未就绪 → 别碰目标
 
-	const bool allow = openRub && rpm_avg > (float)shoot_speed * 0.8f;
+	const bool allow = openRub && rpm_avg > (float)shoot_speed * 0.8f;//确保摩擦轮已经转起来了，才允许拨盘转动，这里以达到80%转速为准
 
 
-	if (fire_pulse && allow) d->setangle += -para.bullet_step;
-	if (fire_cont && allow)
+	if (fire_pulse && allow) d->setangle += -para.bullet_step;//单发 这里的步长是以7发为准，8182*36/7得到的
+	if (fire_cont && allow)//连发
 	{
 		if (rate_ms >= T_RATE) { rate_ms = 0; d->setangle += -para.bullet_step; }
-		else                     rate_ms += TICK;
+		else rate_ms += TICK;//每125ms拨一次
 	}
 	else rate_ms = 0;
 
