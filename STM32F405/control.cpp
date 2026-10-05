@@ -124,7 +124,7 @@ void CONTROL::PANTILE::Update()
 		ClampAngle(ctrl.pantile_motor[PANTILE::TYPE::YAW]->setangle, para.yaw_center, para.yaw_span);// 钳到 ±半宽
 
 	// 2. 达妙 Pitch 保护与更新
-	if ((can2.jointidata[0][0] & 0x0F) == (DMmotor[0].ID & 0x0F))
+	if (DMmotor[0].decoded || pitch_ready)     // pitch 那一段里面不用动
 	{
 		if (!pitch_ready) { mark_pitch = DMmotor[0].pos;pitch0 = mark_pitch; pitch_ready = true; }
 		LIMIT_MIN_MAX(mark_pitch, para.dm_pitch_min, para.dm_pitch_max);

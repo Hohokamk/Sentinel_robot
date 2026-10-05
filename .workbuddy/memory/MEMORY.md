@@ -14,6 +14,7 @@ ArmTask 100ms `DMmotorinit()`×2+`power.Send()`｜DecodeTask 5ms `rc.Decode`+`im
 - ⚠️ **容量宏**：`CHASSIS=4 / PANTILE=2 / SHOOTER=2 / SUPPLY=1`。数组越界会**静默别名到下一个成员**（`shooter_motor[2]` == `supply_motor[0]`）
 - 底盘全向轮 45° X，左前起顺时针 1→2→3→4 = `chassis_motor[i]` = 拨码 i+1。逆解 `w1=-vx-vy+Kωz`、`w2=+vx-vy+Kωz`、`w3=+vx+vy+Kωz`、`w4=-vx+vy+Kωz`
 - 云台三轴 = M6020 大 yaw + 达妙 Pitch + 达妙 Yaw；`pantile_motor[PITCH]` 恒 nullptr
+- **2026-10-05 比赛形态定案（用户）**：按**固定轨迹**走到特定位置 → 打一块**小幅移动的板子**。⇒ 自瞄只需小幅范围，**达妙 yaw 整场不用，要锁住**。M6020 的 ±1896 计数（±83°）**够用**，先前担心的"166° 做不了全周"问题**消失**；也不需要底盘协同 / `Keep_Direction` / IMU 参考系。yaw 自由度收敛为**单级 M6020**
 
 ## 三、必记机制
 - `Motor::Ontimer(idata, odata)`：解析反馈+回填发送缓冲。`can.data[12][8]` 按 `StdId-0x201`；`temp_data[16]` 字节 0-7=0x200 帧、8-15=0x1FF 帧。PID→电流在内部（POS/SPD/ACE）
@@ -27,7 +28,7 @@ ArmTask 100ms `DMmotorinit()`×2+`power.Send()`｜DecodeTask 5ms `rc.Decode`+`im
   - `GM6020`(M6020)：反馈 `0x204+拨码` → **物理拨码 = n-4**（`ID5` 拨 **1**）
   - can1 实配：`ID2`→拨2、`ID3`→拨3、`ID7`→**拨7**、`ID5`→**拨1**
 - ⚠️ **`has_feedback` 唯一入口 = `motor.cpp:78`**，原判据 `temperature != 0`（`idata[idx][6]`）。**本机 C610 温度字节恒 0** → 已加兜底 `|| idata[slot][0] || idata[slot][1]`。连带 `temperature>70 → setspeed=0` 的**过温保护对拨盘失效**
-- `judgement`/`supercap` 类已实现但**零调用点**；`xuc.Encode()` 未调
+- `judgement`/`supercap` 类已实现但**零调用点**（⇒ `xuc.Encode()` 里的 `own_color` 读 `judgement.data...robot_id` 恒 0 → **恒 RED**）
 - ⚠️ `supply_bullet` 被 RC 每帧清 false 且 `Update()` 不消费 → 死变量。拨弹判据 = `openRub && 弹速达标 && 扳机`
 - ⚠️ **POS 分支多圈必须走 `use_sum_angle` + `sum_angle`**（`getdeltaa`+`(int16_t)` 对多圈失效）；latch 时补 `angle[pre]=angle[now]`
 - `Position(err, limit)` 第二参钳的是**积分槽**，`Ti=0` 时无效（纯 P）
@@ -60,13 +61,37 @@ HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**�
 
 ---
 
-## 五、进度（2026-09-27 16:10，用户报"主线基本写完"）
-✅ 底盘（逆解/限幅/RESET）· 云台三轴（两 yaw 位置 + Pitch 位置，限幅已实测）· POS 串级 + latch/ClampAngle · RC 9 组合 + 7 mode · 达妙分总线 · `SHOOTER::Update()` 六段 · `has_feedback` 兜底 · 单发/连发同号 · `lead` 双边钳制 · **`POS_DEADBAND=3.0f` 位置死区**（`motor.cpp:128-132`）
-🔧 **当前主线（用户定序）**：上位机链路 —— ① 修 `xuc.cpp` 三处（字节序 / 字段名 / `yaw_spd`）② `RC::OnPC()`（`xuc.Decode()` + `xuc.Encode()` 调用点 + 自瞄控制律）③ 再写 `Keep_Pantile` / `Keep_Direction`
-⬜ **暂不需要**：judgement · supercap · ACE 分支（用户明确"不需要用"）
+## 五、进度（2026-10-05）
+✅ 底盘（逆解/限幅/RESET）· 云台三轴（两 yaw 位置 + Pitch 位置）· POS 串级 + latch/ClampAngle · RC 9 组合 + 7 mode · 达妙分总线 · `SHOOTER::Update()` 六段 · `has_feedback` 兜底 · 单发/连发同号 · `lead` 双边钳制 · `POS_DEADBAND=3.0f` 位置死区 · **Pitch 限幅已实测**
+✅ 上位机链路 1/2/3/4a/5/6 已落地：`xuc.Decode` 进 DecodeTask、`FR4` 替换、`rx_count`、`rc.Update()` 提前、`RC::OnPC()`（守卫+超时+pitch 直给+openRub/auto_shoot）、`SHOOTER::Update` 用 `trig_eff`、`ArmTask` 里 `xuc.Encode()`（判 AUTOAIM）；`yaw_spd` 重排 + 周期改 0.005
+🔧 **当前主线（2026-10-05 用户定）**：① **锁达妙 yaw** ② 打通自瞄 yaw 通路（M6020）③ 与视觉对接协议对齐
+⬜ **暂不需要**：judgement · supercap · ACE 分支 · `Keep_Pantile` / `Keep_Direction`（比赛形态用不上）· 全周自瞄 / 底盘协同
 ✅ `now_bullet_speed` 已被 `rpm_avg` 替代（剔除死变量）；`rpm_avg` 仍是 `Update()` 局部量
-💡 **`Keep_Direction` 用达妙 yaw**（用户 2026-09-27 定）：① 达妙 yaw **无机械限幅**、② IMU 装在**它控制的那个 yaw 轴上** → 该轴就是"底盘相对云台"的天然参考，不需要底盘 IMU（`imu_chassis` 从未 Init）
-⚠️ 但达妙 yaw 是 **SPEED 模式**（`setSpeed` = 角速度），不反馈位置 → 要么改成 P_S，要么用 `imu_pantile.GetAngleYaw()` 积分/直接取值当角度源
+
+### 五之二、锁达妙 yaw 的方案（2026-10-05）
+达妙 `[1]` 是 **SPEED 模式**，但**反馈帧任何模式都返回 pos/vel/torque**（`State_Decode` 无条件解析）⇒ SPEED 下 `pos` 有值。
+| 方案 | 做法 | 抗扰 | 回位 | 改动 |
+|---|---|---|---|---|
+| A 失能 | 停发 `DMmotorinit` + 发一次 `0xFD` | 无 | 无 | 小 |
+| B 速度锁 0 | `setSpeed = 0` 恒定（**现状**） | 抗速度不抗位置 | ❌ | 极小 |
+| **C 软位置锁（推荐）** | 保持 SPEED，`setSpeed = Kp*(pos_lock - pos)` | ✅ | ✅ | 小，零协议改动 |
+选 C 的理由：不改电机内部模式（避免 P_S 重配 PID / ±4π / 零位语义），电机仍跑已调好的速度环，外面套 P 即得位置保持。⚠️ `DMmotor_Ontimer` 有 `LIMIT_MIN_MAX(setSpeed,V_MIN,V_MAX)=±10 rad/s`，Kp 别大。
+⚠️ 必须"回位"而不能只"速度 0"：**弹丸反冲**会让 yaw 逐发累积偏移 → 视觉给的偏差角失配。
+⚠️ `pos_lock` 取第一帧**真反馈**时锁存；**别重犯 `pitch0` 的 latch 竞态**（guard 看 ISR `jointidata` 而 `pos` 由 2ms 任务写）→ 用 `decoded` 标志兜底。`pos` 初值 0，锁错会朝电机零位猛冲 → 过载掉使能。
+
+### 五之三、锁 yaw 的必改点
+1. `control.cpp:137` `DMmotor[1].setSpeed = yaw_speed_out;` → 换锁位输出
+2. `control.cpp:77` `yaw_speed_out = ...` → 删
+3. `Control_Pantile(ch_dji_yaw, ch_pitch, ch_dm_yaw)` 第三参：`ROTATION` 传 `rc.ch[3]`、`SPINNING` 传 `rc.ch[1]` → 改 0 或删该参数
+
+### 五之四、视觉对接（自瞄口径建议）
+**优先争取"偏差角增量"口径**：视觉给 `yaw_diff`/`pitch_diff` = 云台还需转过的角度（云台系、度）→ 电控 `setangle += k*yaw_diff`、`mark_pitch += k*pitch_diff`（k≈0.5~1.0）。
+好处：不需要 IMU / 世界系 / 底盘协同 / 绝对零位；**丢目标 → 增量为 0 → 云台自然停（天然 fail-safe）**。
+⚠️ 增量=纯积分：`yaw_diff` 若有系统偏置会**一路转到 ClampAngle 撞限位** → 必须配死区（0.3~0.5°）+ 限幅 + k<1。
+⚠️ 要问视觉"目标 off-screen 时能否给粗略左右方向"——固定轨迹的终点朝向若保证板子在 FOV 内，这条可以省。
+换算：度 → M6020 计数 ×`8192/360 = 22.756`。
+
+**与视觉必须对齐的接口项**：帧长、CRC16 参数（初值 `0xFFFF`、覆盖 `len-2`）、每个角度的**单位**（现在 `pitch/pitch_diff` 转弧度而 `yaw/yaw_diff` 没转）、**`yaw/yaw_diff` 的参考系与正方向**、`fireadvice` 语义（建议 vs 立即）、**目标丢失时发什么**、`distance` 单位、`v_y` 用不用、发送频率、字节序、上报帧字段（`aim_x/y/z` 恒 0、`detect_color` 因 judgement 零调用恒 RED、上报仅 10Hz）。
 
 **⚠️ 标定值是自洽性检查，不是需要保留的结论**：`dm_pitch_min/max`、`T_ON/T_OFF`、`POS_DEADBAND`、`bullet_step` 都会随机构/装配变。真正不变的是**推导链**（编码换算、阈值选择准则、迟滞必要性），写进记忆的是链不是数。
 
@@ -79,6 +104,8 @@ HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**�
 - ⚠️ 拨盘 `current` 增量式：误差归零后 `current` 冻结在上次值
 - ⚠️ 拨盘发抖（2026-09-27）：外环纯 P **无死区** → stick-slip 极限环；已在 `motor.cpp` 加 `POS_DEADBAND = 3.0f`（转子度）。⚠️ 该常量写在 POS 分支内，**M6020 yaw 共用**（直驱 → 输出 3° 死区）
 - ⚠️ 达妙 Pitch：`setPos` 只在 guard 成立时更新，否则残留上一帧值 → guard 用 `(jointidata&0x0F)==ID || pitch_ready` 兜底；`para.dm_pitch_min/max` 若框不住 `pos` 会瞬间被拽到边界。**单周期 guard 只能限制不在 guard 内的修改 → 目标值必须靠 `PANTILE::Update()` 自己钳制**
+- 🔴 **`xuc.Decode()` 零校验**：`verifyCRC16CheckSum()` 写了但**零调用**，判据只有 `m_frame[0]==0xA5` → **一帧噪声就能让云台跳到任意角度**（`mark_pitch = xuc.pitch` 是直接赋值）。现场电磁环境差，必须补。另 `if (sizeof(m_frame) < 18) return;` 是编译期常量（`uint8_t[100]`）→ 死代码
+- 🔴 **双上位机通路冲突**：`rc.pc.x/y`（遥控器帧 `m_frame[6..11]` 解出）与 `xuc`（UART3）两套并存，都在写 `chassis.speedx/speedy`；`RC_Control()` 的 AUTOAIM case 用 `pc.*`，`OnPC()` 用 `xuc.*` → **实际是 pc 赢**。要定唯一主人
 - 达妙 Yaw 仅 `SPINNING`/`ROTATION` 有输入；`ROTATION` 的 `speedz=rc.ch[2]` **未换算**（唯一量纲不一致处）；`AUTOAIM` 不调 `Control_Pantile`
 - `can.cpp` 达妙接收分支**不分总线**；`GetPosition()` 恒返 0（读 `.pos`）；`Motor_Start/Stop/ZeroPosition` 无定义；`pid[2]` vs `speed2=2` 越界（零调用）；`main()` 的 `HAL_Init()` 顺序反；`imu.cpp` `Check()` 有分支无 return
 - `ControlTask` 用 `vTaskDelay(5)` 非 `vTaskDelayUntil` → `hold_ms` 计时偏长

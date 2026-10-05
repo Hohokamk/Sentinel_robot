@@ -18,6 +18,7 @@ void buffer_append_int16(uint8_t* buffer, int16_t number, int16_t* index) {
 
 DMMOTOR& DMMOTOR::State_Decode(uint8_t idata[][8])//接收反馈数据
 {
+	
 	//浮点型数据
 	//receive_data[0]=电机id
 	uint8_t id = 0xFF;
@@ -25,6 +26,11 @@ DMMOTOR& DMMOTOR::State_Decode(uint8_t idata[][8])//接收反馈数据
 		if (&DMmotor[i] == this) { id = i; break; }//获取当前电机的索引
 	}
 	if (id == 0xFF) return *this;
+
+	const uint8_t s = idata[id][0];  //电机状态
+	if ((s & 0x0F) != (this->ID & 0x0F)) return *this;   // 本槽不是我的帧 → 不改任何东西
+	status = s >> 4;
+
 	int direct = 0;
 	int tmp_value = 0;
 	tmp_value = (idata[id][1] << 8) | (idata[id][2]);//电机位置
@@ -34,6 +40,7 @@ DMMOTOR& DMMOTOR::State_Decode(uint8_t idata[][8])//接收反馈数据
 	tmp_value = (idata[id][5]) | ((idata[id][4] & 0x0f) << 8);
 	current = uint_to_float(tmp_value, C_MIN, C_MAX, 12);
 	torque = current * KT;//（力矩=电流*转矩常数，本产品转矩常数为 1.4Nm/A）
+	decoded = true;
 	
 	return *this;
 }

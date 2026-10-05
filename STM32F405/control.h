@@ -43,6 +43,10 @@ public:
 		//void Control_Pantile(int32_t ch_yaw, int32_t ch_pitch);
 		void Keep_Pantile(float angleKeep, PANTILE::TYPE type, IMU frameOfReference);
 		void Update();
+
+		bool  yaw_lock_ready = false;// yaw锁定准备好，这是一个自动模式需要用的一个判断变量
+		float yaw_lock_pos = 0.f;
+		const float yaw_lock_Kp = 3.0f;    // rad/s per rad，先给 3，从小往大调
 	};
 
 	struct SHOOTER

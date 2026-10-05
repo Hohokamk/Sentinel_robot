@@ -62,6 +62,9 @@ public:
 	float Kp = 10.f;
 	float Kd = 0.6f;
 
+	bool decoded = false;   //是否解码成功，解码成功后才可以使用数据
+	uint8_t status = 0;      // 0=未使能 1=已使能 8~E=故障
+
 	float uint_to_float(int x_int, float x_min, float x_max, int bits);//计算用函数
 	int float_to_uint(float x, float x_min, float x_max, int bits);
 
