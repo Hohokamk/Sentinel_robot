@@ -7,6 +7,7 @@
 #include <judgement.h>
 #include "pid.h"
 #include <string.h>
+#define XUC_FRAME_LEN 32
 struct TxPacket
 {
 	uint8_t header = 0x5A;
@@ -22,19 +23,19 @@ struct TxPacket
 	uint16_t checksum = 0;
 }__attribute__((packed));
 
-struct RxPacket
-{
-	uint8_t header = 0xA5;
-
-	uint16_t checksum = 0;
-};
+//struct RxPacket
+//{
+//	uint8_t header = 0xA5;
+//
+//	uint16_t checksum = 0;
+//};
 
 class XUC
 {
 public:
 
 	TxPacket TxNuc;
-	RxPacket RxNuc;
+	/*RxPacket RxNuc;*/
 
 	float feedforward = 1.2f;
 	//FTY 25/2/16
@@ -49,6 +50,7 @@ public:
 	float speed_x = 0, speed_y = 0, prespeedx, prespeedy;
 	float yaw_bias = -2.7;
 	uint16_t rx_count = 0;
+	uint16_t crc_err = 0;
 
 	float x, y, z;
 	float vx, vy, vz;
@@ -140,14 +142,14 @@ private:
 
 	uint8_t* frame;
 	uint8_t m_frame[UART_MAX_LEN]{};
-	uint8_t tx_data[60];
+	uint8_t tx_data[64];
 
-	float u8_to_float(uint8_t* p) {
-		float s{}; uint8_t ch[4];
-		ch[0] = p[3]; ch[1] = p[2]; ch[2] = p[1]; ch[3] = p[0];
+	//float u8_to_float(uint8_t* p) {
+	//	float s{}; uint8_t ch[4];
+	//	ch[0] = p[3]; ch[1] = p[2]; ch[2] = p[1]; ch[3] = p[0];
 
-		memcpy(&s, p, 4); return s;
-	}
+	//	memcpy(&s, p, 4); return s;
+	//}
 	float FR4(uint8_t* p)
 	{
 		float s;

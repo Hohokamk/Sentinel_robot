@@ -59,6 +59,14 @@ ArmTask 100ms `DMmotorinit()`×2+`power.Send()`｜DecodeTask 5ms `rc.Decode`+`im
 ### ⚠️ `HAL_UART_Transmit` 与 FreeRTOS 的嵌套临界区
 HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**中断上下文**里调 `HAL_UART_IRQHandler(&huart)`，若此时某任务正阻塞在 `HAL_UART_Transmit` 内 → 双方都看到 `HAL_BUSY` → 任务异常退出 / 中断丢失事件。⇒ **别在任务上下文用 `UARTTransmit`**，要么改 `DMATransmit`（纯寄存器操作，非阻塞），要么用 DMATx + TC 中断 + 信号量
 
+### 四之三、导航下行 + Encode 数据源（2026-10-05 22:00）
+- **弃用 `RxPacket` 是刻意的**：它只有 `header+checksum`（sizeof=4），从未描述 32B 帧。**收（视觉定义）用偏移硬解析，发（我方定义）用 packed 结构体** —— 不对称是设计不是遗漏
+- ⚠️ 队列 item=100B，ISR 拷**整个缓冲快照**且不清零 → 短帧尾部带残字节 ⇒ **CRC 必须在读偏移之前跑**
+- **底盘下行**：入口 = `ctrl.chassis.speedx/speedy/speedz`（**单位是 rpm 不是 m/s**，要实测标定 K）。32B 帧已排满、`[22..24]/[29]` 仅 4B ⇒ **必须扩帧（32→44）**；另开一条帧会因队列深度 1 + `xQueueOverwriteFromISR` 互相冲掉。写在 **`RC::OnPC()`**（后跑，天然覆盖 `RC_Control()` 的摇杆值）；⚠️ 掉线早退只清 shooter，**底盘会留残值继续跑**
+- **`Encode()` 只搬运、不在里面算**：`aim_x/y/z` 是成员变量、**全工程无人写 = 恒 0**；`detect_color` 靠 judgement（零调用）**恒 RED**；`reset_tracker` 硬编码 0；⚠️ `Encode()` 只在 `mode==AUTOAIM` 时跑（`taskslist.cpp:163`）⇒ **导航模式上报会被禁**
+- **帧长实测**（用本机 Arm GCC 10.3.1 编 `TxPacket` 取真实 `sizeof`/`offsetof`）：**上行 28B** = `0`header / `1` flags(3位域) / `2-5` roll / `6-9` pitch / `10-13` yaw / `14-17` aim_x / `18-21` aim_y / `22-25` aim_z / `26-27` CRC；**下行 32B**（`XUC_FRAME_LEN`）= `0`hdr / `1-4`pitch / `5-8`yaw / `9-12`yaw_diff / `13-16`pitch_diff / `17-20`distance / `21`fireadvice / `22-24`保留 / `25-28`v_y / `29`保留 / `30-31`CRC。**收发不等长、header 不同（0x5A vs 0xA5）、CRC 覆盖不同（26B vs 30B）**，但算法参数一致（`CRC_INIT=0xffff` 反射表）。⚠️ `bool` 做位域类型是**实现定义** ⇒ 换编译器布局可能变，**加 `static_assert(sizeof(TxPacket)==28)` 并与视觉逐字节对联**
+- 队列 item=100B（`UART_MAX_LEN`），收进来是 **100B 快照**只用前 32；收频率 = `DecodeTask` 5ms 轮询（`xQueueReceive(...,NULL)` = 非阻塞），发频率 = `ArmTask` 100ms = **10Hz**
+
 ---
 
 ## 五、进度（2026-10-05）
@@ -74,15 +82,21 @@ HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**�
 |---|---|---|---|---|
 | A 失能 | 停发 `DMmotorinit` + 发一次 `0xFD` | 无 | 无 | 小 |
 | B 速度锁 0 | `setSpeed = 0` 恒定（**现状**） | 抗速度不抗位置 | ❌ | 极小 |
-| **C 软位置锁（推荐）** | 保持 SPEED，`setSpeed = Kp*(pos_lock - pos)` | ✅ | ✅ | 小，零协议改动 |
+| **C 软锁 + 手动微调（用户 2026-10-05 定案）** | 保持 SPEED，`setSpeed = yaw_speed_out + Kp*(pos_lock - pos)` | ✅ | ✅ | 小，零协议改动 |
 选 C 的理由：不改电机内部模式（避免 P_S 重配 PID / ±4π / 零位语义），电机仍跑已调好的速度环，外面套 P 即得位置保持。⚠️ `DMmotor_Ontimer` 有 `LIMIT_MIN_MAX(setSpeed,V_MIN,V_MAX)=±10 rad/s`，Kp 别大。
 ⚠️ 必须"回位"而不能只"速度 0"：**弹丸反冲**会让 yaw 逐发累积偏移 → 视觉给的偏差角失配。
 ⚠️ `pos_lock` 取第一帧**真反馈**时锁存；**别重犯 `pitch0` 的 latch 竞态**（guard 看 ISR `jointidata` 而 `pos` 由 2ms 任务写）→ 用 `decoded` 标志兜底。`pos` 初值 0，锁错会朝电机零位猛冲 → 过载掉使能。
 
-### 五之三、锁 yaw 的必改点
-1. `control.cpp:137` `DMmotor[1].setSpeed = yaw_speed_out;` → 换锁位输出
-2. `control.cpp:77` `yaw_speed_out = ...` → 删
-3. `Control_Pantile(ch_dji_yaw, ch_pitch, ch_dm_yaw)` 第三参：`ROTATION` 传 `rc.ch[3]`、`SPINNING` 传 `rc.ch[1]` → 改 0 或删该参数
+### 五之三、锁 yaw 的必改点（2026-10-05 21:20 定稿）
+0. 🔴 **`DMmotor[1].setSpeed` 双写者**：`Control_Pantile`（`control.cpp:78-79`，含手动项）与 `PANTILE::Update`（`:143`，纯锁）都写它；`ControlTask` 里 `pantile.Update()` 后跑 ⇒ **覆盖**。**必须单一写者**：`Control_Pantile` 只产出 `yaw_speed_out`（删写 setSpeed 那行），执行只在 `PANTILE::Update`：`setSpeed = yaw_speed_out + Kp*(pos_lock-pos)`
+0b. 连锁：`yaw_speed_out` 变成"有记忆的意图量" ⇒ AUTOAIM case 必须补 `yaw_speed_out = 0`（否则 ROTATION/SPINNING 残值让达妙 yaw 漂移）
+1. `control.cpp:140` 需补 `yaw_speed_out +` 才是 C（见 0，写法已定）
+2. ~~`control.cpp:77` `yaw_speed_out = ...` → 删~~ **错误，撤回**：`yaw_speed_out` 就是 C 的**手动微调项**，`control.h:36` 与 `control.cpp:77` 全部**保留**
+3. `Control_Pantile` 第三参 `ch_dm_yaw` **保留**（有真实消费者：→ `yaw_speed_out`）；`ROTATION`/`SPINNING` 传的 `rc.ch[3]`/`rc.ch[1]` 也**保留**
+4. `control.h:49` `const float yaw_lock_Kp` → **去 `const`**（已完成 ✅）
+5. `RC.cpp` AUTOAIM case 的 `ctrl.pantile.yaw_speed_out = 0;` **必须补**（现状缺失 ❌）
+6. C 行为：推杆稳态偏差 = `yaw_speed_out / Kp`；**松杆自动弹回 `yaw_lock_pos`**（抗反冲回位）。满杆 `π rad/s`、`Kp=3` ⇒ 偏差上限 ≈1.05 rad ≈ 60°。⚠️ 首次测试若松手**发散**而非回位 ⇒ `setSpeed` 与 `pos` 反号 ⇒ `Kp` 取负
+7. **自瞄 yaw 写 M6020（`pantile_motor[YAW]->setangle`），不写达妙**：M6020 通路无写者冲突（`PANTILE::Update`:125-127 只 `ClampAngle` 钳位不覆盖）；达妙 yaw 已锁死，`OnPC` 不碰
 
 ### 五之四、视觉对接（自瞄口径建议）
 **优先争取"偏差角增量"口径**：视觉给 `yaw_diff`/`pitch_diff` = 云台还需转过的角度（云台系、度）→ 电控 `setangle += k*yaw_diff`、`mark_pitch += k*pitch_diff`（k≈0.5~1.0）。
@@ -96,6 +110,7 @@ HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**�
 **⚠️ 标定值是自洽性检查，不是需要保留的结论**：`dm_pitch_min/max`、`T_ON/T_OFF`、`POS_DEADBAND`、`bullet_step` 都会随机构/装配变。真正不变的是**推导链**（编码换算、阈值选择准则、迟滞必要性），写进记忆的是链不是数。
 
 ## 六、活跃陷阱
+- ⚠️ **CRC16 有两份重复实现**：全局 `CRC.h/.cpp`（`GetCRC16CheckSum` / `VerifyCRC16CheckSum` 返 `uint8_t` / `AppendCRC16CheckSum`，`CRC_INIT=0xFFFF`，`wCRC_Table`）与 `xuc.h/.cpp` 类内成员版（`getCRC16CheckSum` / `verifyCRC16CheckSum` 返 `uint32_t` / `appendCRC16CheckSum`，`CRC16_INIT`，`CRC_TAB`）。两张 256 项表**逐项相同** ⇒ 纯重复（~1KB flash）。`xuc.cpp` 已 include `CRC.h` ⇒ 保留全局版、删 xuc 版。参数口径 = **CRC-16/MCRF4XX**（反射 0x1021 = 0x8408、init 0xFFFF、低字节在前、覆盖 `len-2`）= RM 官方视觉协议那套
 - ⚠️ **越界别名**：`shooter_motor[2]`（`SHOOTER_MOTOR_NUM=2`）别名 = `supply_motor[0]`（拨盘）→ 弹速计算混入拨盘；同类：任何 `[i]` 超出容量宏都是静默别名
 - ⚠️ **`pitch0` latch 竞态**：`PANTILE::Update()` 的 guard 看 ISR 原始 `jointidata[0][0]`，而 `DMmotor[0].pos` 由 `MotorUpdateTask` 的 `State_Decode` 写 → 存在"guard 先成立、`pos` 仍是初值 0"的窗口 → `pitch0=0` → 朝电机零位冲。且 `pitch_ready` **永不复位** → 一旦 latch 错就永久错。修法：guard 改用"已解码"标志
 - ⚠️ **`setSpeed=0` 是天然保护**（`PANTILE::Update()` 里 `setSpeed=1.5f` 写在 guard **内部**）→ guard 不成立时 POS_VEL 限速 0，Pitch 只会不动。**不要把它挪到 guard 外**
@@ -107,7 +122,8 @@ HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**�
 - 🔴 **`xuc.Decode()` 零校验**：`verifyCRC16CheckSum()` 写了但**零调用**，判据只有 `m_frame[0]==0xA5` → **一帧噪声就能让云台跳到任意角度**（`mark_pitch = xuc.pitch` 是直接赋值）。现场电磁环境差，必须补。另 `if (sizeof(m_frame) < 18) return;` 是编译期常量（`uint8_t[100]`）→ 死代码
 - 🔴 **双上位机通路冲突**：`rc.pc.x/y`（遥控器帧 `m_frame[6..11]` 解出）与 `xuc`（UART3）两套并存，都在写 `chassis.speedx/speedy`；`RC_Control()` 的 AUTOAIM case 用 `pc.*`，`OnPC()` 用 `xuc.*` → **实际是 pc 赢**。要定唯一主人
 - 达妙 Yaw 仅 `SPINNING`/`ROTATION` 有输入；`ROTATION` 的 `speedz=rc.ch[2]` **未换算**（唯一量纲不一致处）；`AUTOAIM` 不调 `Control_Pantile`
-- `can.cpp` 达妙接收分支**不分总线**；`GetPosition()` 恒返 0（读 `.pos`）；`Motor_Start/Stop/ZeroPosition` 无定义；`pid[2]` vs `speed2=2` 越界（零调用）；`main()` 的 `HAL_Init()` 顺序反；`imu.cpp` `Check()` 有分支无 return
+- ✅ **达妙接收"有意汇流"（2026-10-05 更正，原记为 bug 有误）**：`can.cpp:146-151` 不判 `hcan`，两路的达妙帧**都写进 `can2.jointidata[i]`**（`i` 由 `Data[0]&0x0F` 匹配 `DMmotor[i].ID` 得到）⇒ `MotorUpdateTask` 里 `State_Decode(can2.jointidata)` 对挂 can1/can2 的电机**通用**，这是当前能跑的原因。⚠️ 隐式耦合：若两条总线出现**同 ID** 的达妙电机，二者争抢同一个 `jointidata` 槽
+- `GetPosition()` 恒返 0（读 `.pos`，`angle[]` 全工程未写）；`Motor_Start/Stop/ZeroPosition` 无定义；`pid[2]` vs `speed2=2` 越界（零调用）；`main()` 的 `HAL_Init()` 顺序反；`imu.cpp` `Check()` 有分支无 return
 - `ControlTask` 用 `vTaskDelay(5)` 非 `vTaskDelayUntil` → `hold_ms` 计时偏长
 
 ## 七、协作约定

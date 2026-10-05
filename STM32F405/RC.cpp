@@ -26,27 +26,37 @@ void RC::OnRC()
 
 void RC::OnPC()
 {
-	// ── ① 只在 AUTOAIM 模式接管，其余模式完全不碰
-	if (ctrl.mode != CONTROL::AUTOAIM) return;
-
-	// ── ② 数据新鲜度：rx_count 变了就重置超时，否则递减
+	// 只在 AUTOAIM 模式接管，其余模式完全不碰
+	if (ctrl.mode != CONTROL::AUTOAIM) { ctrl.shooter.auto_shoot = false; return; }
+	// 数据新鲜度：rx_count 变了就重置超时，否则递减
 	if (xuc.rx_count != last_rx_count) {
 		last_rx_count = xuc.rx_count;
 		pc_timeout = TIMEOUT_TICKS;          // 例：50 → 50×5ms = 250ms
 	}
 	else if (pc_timeout > 0) --pc_timeout;
 
-	// ── ③ 失联 → 本帧什么都不做（保留 RC 写的意图），并让摩擦轮停
+	// 失联：让摩擦轮停
 	if (pc_timeout == 0) {
 		ctrl.shooter.openRub = false;
 		ctrl.shooter.auto_shoot = false;
 		return;
 	}
 
-	// ── ④ pitch：位置直给
-	ctrl.pantile.mark_pitch = xuc.pitch;
+	//pitch：位置使用增量式
+	const float KP = 0.5f;
+	const float DB = 0.3f * PI / 180.f;
+	if (fabsf(xuc.pitch_diff) > DB)
+		ctrl.pantile.mark_pitch += KP * xuc.pitch_diff;
 
-	// ── ⑤ 开火
+	//yaw使用位置环
+	Motor* y = ctrl.pantile_motor[CONTROL::PANTILE::YAW];
+	const float KY = 0.5f;                        // 0.3~1.0，<1 留阻尼
+	const float DB = 0.3f * PI / 180.f;           // 0.3° 死区
+	const float RAD2CNT = 8192.f / (2.f * PI);    // ≈1303.8 计数/弧度
+	if (y && y->has_feedback && fabsf(xuc.yaw_diff) > DB)
+		y->setangle += KY * xuc.yaw_diff * RAD2CNT;
+
+	//开火
 	ctrl.shooter.openRub = true;
 	ctrl.shooter.auto_shoot = xuc.fireadvice;
 	
@@ -67,7 +77,7 @@ void RC::RC_CheckState() {
 		break;
 
 	case RC_STATE(UP, MID):
-		ctrl.mode = CONTROL::RESET;
+		ctrl.mode = CONTROL::AUTOAIM;
 		break;
 
 	case RC_STATE(UP, DOWN):
@@ -140,9 +150,12 @@ void RC::RC_Control() {
 			break;
 
 		case CONTROL::AUTOAIM://自动瞄准	
-			ctrl.chassis.speedx = pc.x * para.max_speed / 660.f;
-			ctrl.chassis.speedy = -pc.y * para.max_speed / 660.f;//这是写给pc的接口，rc的不用管
-			//这里还要写射击，给pc接管
+			ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
+			ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
+			ctrl.chassis.speedz = rc.ch[2];
+			ctrl.pantile.yaw_speed_out = 0;
+
+			//这里还要写射击，给xuc接管
 			break;
 
 		case CONTROL::FIRE://射击
@@ -168,7 +181,7 @@ void RC::RC_Control() {
 			ctrl.chassis.speedx = 0;
 			ctrl.chassis.speedy = 0;
 			ctrl.chassis.speedz = rc.ch[0] * para.max_speed / 660.f; //底盘旋转
-			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3], rc.ch[1]);         // 大yaw，小yaw，pitch
+			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3], rc.ch[1]);         // 小yaw，pitch，大yaw
 			break;
 
 		default:

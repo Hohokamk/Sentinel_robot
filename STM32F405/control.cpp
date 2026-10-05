@@ -75,6 +75,9 @@ void CONTROL::PANTILE::Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int
 	// 速度模式：摇杆推多少就给多大角速度，传 0 就立刻刹停
 	const float max_dm_speed = PI; // 最大 180°/s
 	yaw_speed_out = (float)ch_dm_yaw / 660.f * max_dm_speed;
+	DMmotor[1].setSpeed = yaw_speed_out                                  // 手动微调（rad/s）
+		+ yaw_lock_Kp * (yaw_lock_pos - DMmotor[1].pos); // 软锁回位
+
 }
 
 void CONTROL::PANTILE::Keep_Pantile(float angleKeep, PANTILE::TYPE type,IMU frameOfReference)
@@ -134,7 +137,11 @@ void CONTROL::PANTILE::Update()
 
 	// 3. 达妙 Yaw 下发速度指令
 	// 如果上层传 0，这里就会下发 0 rad/s，电机依靠自身的阻尼和速度环稳稳刹住
-	DMmotor[1].setSpeed = yaw_speed_out;
+	if (DMmotor[1].decoded)
+	{
+		if (!yaw_lock_ready) { yaw_lock_pos = DMmotor[1].pos; yaw_lock_ready = true; }
+		DMmotor[1].setSpeed = yaw_lock_Kp * (yaw_lock_pos - DMmotor[1].pos);
+	}
 
 }
 void CONTROL::SHOOTER::Update()
@@ -180,7 +187,7 @@ void CONTROL::SHOOTER::Update()
 	//}
 
 
-	trig_pre = trig;//上升沿结束
+	//trig_pre = trig;//上升沿结束
 
 	// ⑤ 拨盘：POS 双环，累加 setangle
 	Motor* d = ctrl.supply_motor[0];//拨弹轮

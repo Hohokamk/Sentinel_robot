@@ -5,6 +5,7 @@
 #include <cinttypes>
 
 #define RC_STATE(s0, s1) ( ((s0) << 8) | (s1) )
+#define TIMEOUT_TICKS 50        // 50 × 5ms = 250ms
 
 /*
 左拨码s[0],右拨码s[1]
@@ -23,6 +24,7 @@ public:
 	int gear;
 	bool top_mode = true;
 	bool fix = false;
+
 
 	struct
 	{
