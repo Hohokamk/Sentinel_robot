@@ -34,7 +34,6 @@ public:
 		enum TYPE { YAW, PITCH };
 		float mark_pitch{}, mark_yaw{};
 		float yaw_speed_out = 0.0f;
-		PID pantile_PID[3] = { {0.04f,0.f,0.f},{0.05f,0.f,0.f}, {0.f,0.f,0.f} };
 		const float sensitivity = 2.5f;
 		bool aim = false;
 		bool pitch_ready = false;

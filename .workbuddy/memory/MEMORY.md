@@ -13,7 +13,7 @@ ArmTask 100ms `DMmotorinit()`×2+`power.Send()`｜DecodeTask 5ms `rc.Decode`+`im
 - `DMmotor[0]=(0x09,P_S,Pitch)` 挂 **can1**；`[1]=(0x06,SPEED,Yaw)` 挂 **can2**；总线表 `taskslist.cpp:13 dm_bus[2]`
 - ⚠️ **容量宏**：`CHASSIS=4 / PANTILE=2 / SHOOTER=2 / SUPPLY=1`。数组越界会**静默别名到下一个成员**（`shooter_motor[2]` == `supply_motor[0]`）
 - 底盘全向轮 45° X，左前起顺时针 1→2→3→4 = `chassis_motor[i]` = 拨码 i+1。逆解 `w1=-vx-vy+Kωz`、`w2=+vx-vy+Kωz`、`w3=+vx+vy+Kωz`、`w4=-vx+vy+Kωz`
-- 云台三轴 = M6020 大 yaw + 达妙 Pitch + 达妙 Yaw；`pantile_motor[PITCH]` 恒 nullptr
+- **云台三轴命名（2026-10-06 用户权威订正，此前记反了）**：**大 yaw = 达妙 `[1]`（360°，SPEED）** + **小 yaw = M6020（ID5，160°，POS）** + **pitch = 达妙 `[0]`（P_S）**。物理核对：`yaw_span=1896` 计数 = ±83.3° ⇒ 166.6° ≈ 用户说的"160°" ⇒ M6020 就是小 yaw。`Control_Pantile` 参数序 = **①小yaw(M6020) ②pitch(达妙) ③大yaw(达妙)**。`pantile_motor[PITCH]` 恒 nullptr（pitch 走达妙）；**小 yaw + pitch 是自瞄轴**
 - **2026-10-05 比赛形态定案（用户）**：按**固定轨迹**走到特定位置 → 打一块**小幅移动的板子**。⇒ 自瞄只需小幅范围，**达妙 yaw 整场不用，要锁住**。M6020 的 ±1896 计数（±83°）**够用**，先前担心的"166° 做不了全周"问题**消失**；也不需要底盘协同 / `Keep_Direction` / IMU 参考系。yaw 自由度收敛为**单级 M6020**
 
 ## 三、必记机制
@@ -66,6 +66,42 @@ HAL 用 `__HAL_LOCK()`（普通变量，非原子）。`OnUARTITHandler` 在**�
 - **`Encode()` 只搬运、不在里面算**：`aim_x/y/z` 是成员变量、**全工程无人写 = 恒 0**；`detect_color` 靠 judgement（零调用）**恒 RED**；`reset_tracker` 硬编码 0；⚠️ `Encode()` 只在 `mode==AUTOAIM` 时跑（`taskslist.cpp:163`）⇒ **导航模式上报会被禁**
 - **帧长实测**（用本机 Arm GCC 10.3.1 编 `TxPacket` 取真实 `sizeof`/`offsetof`）：**上行 28B** = `0`header / `1` flags(3位域) / `2-5` roll / `6-9` pitch / `10-13` yaw / `14-17` aim_x / `18-21` aim_y / `22-25` aim_z / `26-27` CRC；**下行 32B**（`XUC_FRAME_LEN`）= `0`hdr / `1-4`pitch / `5-8`yaw / `9-12`yaw_diff / `13-16`pitch_diff / `17-20`distance / `21`fireadvice / `22-24`保留 / `25-28`v_y / `29`保留 / `30-31`CRC。**收发不等长、header 不同（0x5A vs 0xA5）、CRC 覆盖不同（26B vs 30B）**，但算法参数一致（`CRC_INIT=0xffff` 反射表）。⚠️ `bool` 做位域类型是**实现定义** ⇒ 换编译器布局可能变，**加 `static_assert(sizeof(TxPacket)==28)` 并与视觉逐字节对联**
 - 队列 item=100B（`UART_MAX_LEN`），收进来是 **100B 快照**只用前 32；收频率 = `DecodeTask` 5ms 轮询（`xQueueReceive(...,NULL)` = 非阻塞），发频率 = `ArmTask` 100ms = **10Hz**
+
+---
+
+## 四之四、底层审查（2026-10-06，比赛形态：全自动/固定轨迹/打旋转小幅移动靶）
+
+🔴 **严重 3 条（必修）**
+1. **`pos_deadband` 赋值不可达**：`STM32F405.cpp:111` 的 `task.Init()` 里 `vTaskStartScheduler()` 永不返回，而 `:113-114` 的 `pos_deadband = 3.0f / 0.3f` 在它**之后** ⇒ **小 yaw 与拨盘的位置死区全部失效**（实际 0.0f）。修：移到 `task.Init()` 之前
+2. **M6020 `maxspeed = 20` rpm 太小**（`motor.cpp:197`）⇒ POS 内环速度给定上限 120°/s，小 yaw 走完 160° 要 1.33s（手动名义 180°/s 也被压到 120）。建议 100~300
+3. **M2006 `maxspeed = 3000` 远超实际**（`motor.cpp:203`，空载仅几百 rpm）⇒ 位置环输出一有误差就顶到 3000 ⇒ 电流饱和 10000 ⇒ **满电流狂转→过冲→震荡**（"拨盘发抖"的根因）。建议 500~900
+
+⚠️ **中等**：④ `ControlTask`/`ArmTask` 用 `vTaskDelay` 非 `vTaskDelayUntil`（周期=延时+执行时间，上报实际约 8Hz 非 10Hz）⑤ 底盘逆解**逐轮钳位会畸变合速度方向**，应改等比例缩放 ⑥ **达妙故障后无法自恢复**：`DMmotorinit` 只发 0xFC 使能、从不发 0xFB 清错，`status` 存了无人读 ⇒ 一次过载即永久失能 ⑦ `can.cpp:144` 达妙 `else` 分支太宽泛（非 0x201~0x208 全收），建议加仲裁 ID 白名单 ⑧ **过温保护对 POS 模式电机失效**（`setspeed=0` 但 POS 分支不读它）⑨ `motor.cpp:159` `initial_cnt` 是**全局变量**被所有实例共享 ⇒ `initial_x` 只有前 2 个电机初始化（`distance` 目前零消费者故无害，做里程计会踩）
+
+💡 **建议**：`pantile_PID[3]` / `adjspeed` 零消费者死代码；PID `Delta()` 的 0.92/1.08 缩放 ⇒ **等效积分增益 = 1.08×(Ti + 0.08×Kp)**（底盘 Ti 0.1→0.238，摩擦轮 Ti 0→0.864）；`initial_yaw=4096` 与 `yaw_center=8096` 不匹配（上电首次 ClampAngle 钳到 6200，偏 92°）
+
+❓ **待确认**：**IMU 装在哪根轴上？** `Encode()` 上报的 `TxNuc.pitch = imu_pantile.GetAnglePitch()`；若 IMU 装在小 yaw 载体上（pitch 之下），上报 pitch **不含枪管俯仰** ⇒ 视觉弹道系统性偏差。另需实机验证底盘 vx/vy 横移方向
+
+## 四之五、2026-10-09 复查：修复状态 + 功能缺口
+
+### ✅ 四之四的问题已修
+- `pos_deadband` 两行已移到 `task.Init()` **之前** ✓
+- M6020 `maxspeed` 20→**80**（480°/s）；M2006 3000→**1500**（仍偏高，空载仅几百 rpm）
+- **达妙 yaw 单一写者已达成**：`Control_Pantile` 里的写已删，`PANTILE::Update` 合并 `yaw_speed_out + Kp*(pos_lock-pos)` ✓
+- 已删：`pantile_PID[3]`、`RxPacket`、类内 CRC 三件套、`u8_to_float`；改用全局版 `VerifyCRC16CheckSum`/`AppendCRC16CheckSum` ✓
+
+### 🆕 新状态
+- **IMU 双路拆分**：`imu_pantile` → **UART2**（**枪口/发射头**）；`imu_chassis` → **UART5**（身体/大yaw桶），DecodeTask 里两个都 Decode ⇒ **四之三的 Q1 已答：`Encode()` 上报的 pitch 来自枪口 IMU，是正确的** ✓。但 `imu_chassis` **只 Decode、零消费**（为 `Keep_Direction` 预留）
+- **`xuc` 改挂 UART4 @ 921600**（PC10 TX/PC11 RX），原 UART4 的 `power.Init` 被注释 ⇒ **功率计失效**（`Send()` 内有 `if(m_uart==nullptr)return;`，不会 HardFault）
+- ⚠️ **921600 + 队列深度 1 + 覆盖写 + DecodeTask `vTaskDelay(5)`** ⇒ 处理上限 200 帧/s，视觉发太快会大量丢帧
+
+### ❌ 功能缺口（按"全自动受上位机控制"验收尚未达标）
+1. 🔴 **`Keep_Direction()` 是空实现，却被 `RC.cpp:140` 的 FOLLOW 调用**（该 case 先 `speedx/speedy=0` 再调空函数）⇒ **FOLLOW 模式底盘永不动**
+2. 🔴 **导航下行完全没写**：`xuc.h` 有 `speed_x/speed_y/prespeedx/prespeedy`，但 `Decode()` 不解析、`OnPC()` 不消费 ⇒ **全自动的底盘指令通路是空的**
+3. 🔴 **`judgement` 零调用** ⇒ `detect_color` 恒 RED、`robot_id` 恒 0、血量/热量/发弹数全无
+4. 🔴 **遥控器失联无保护**：`RC::Decode()` 没有失联计时，DBUS 断连后 `rc.ch[]` 保持最后值 ⇒ **底盘按最后摇杆值一直跑**
+5. `supercap` 零调用 · `imu_chassis` 零消费 · `CONTROL::PC`/`LOCK` 死枚举 · `Keep_Pantile` 空实现
+6. ⚠️ **`Motor::getStatus()` / `StatusIdentifier()` 全链路零消费者** ⇒ 电机掉线检测白做；`mark_yaw`/`sensitivity`/`pitch0`/`spinning`/`need_curcircle`/`adjspeed`/`xuc.h` 的 `CRC_TAB[256]`（表格已无人用，白占 512B flash）均为死代码
 
 ---
 

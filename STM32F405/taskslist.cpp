@@ -146,6 +146,7 @@ void DecodeTask(void* pvParameters)
 	{
 		rc.Decode();
 		imu_pantile.Decode();
+		imu_chassis.Decode();
 		xuc.Decode();
 	
 		vTaskDelay(5);

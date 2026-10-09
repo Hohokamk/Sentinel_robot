@@ -17,6 +17,26 @@ void RC::OnRC()
 	RC_CheckState();
 	RC_Control();
 
+	//RC失联保护，失联撤销运动
+	const bool rc_lost = (xTaskGetTickCount() - last_rc_tick) > pdMS_TO_TICKS(RC_LOST_MS);
+
+	if (rc_lost)
+	{
+		if (rc_lost_cnt < 60000) ++rc_lost_cnt;
+		// 只清【遥控器来源】的执行器，不碰视觉
+		ctrl.chassis.speedx = 0;
+		ctrl.chassis.speedy = 0;
+		ctrl.chassis.speedz = 0;
+		ctrl.shooter.trig_raw = 0;
+		ctrl.shooter.openRub = false;
+		ctrl.pantile.yaw_speed_out = 0;    // 防达妙 yaw 吃残值漂移
+	}
+	else
+	{
+		rc_lost_cnt = 0;
+	}
+
+
 	if (Shift_mode())
 	{
 		ctrl.pantile.mark_yaw = (float)ctrl.pantile_motor[CONTROL::PANTILE::YAW]->angle[now];
@@ -51,7 +71,7 @@ void RC::OnPC()
 	//yaw使用位置环
 	Motor* y = ctrl.pantile_motor[CONTROL::PANTILE::YAW];
 	const float KY = 0.5f;                        // 0.3~1.0，<1 留阻尼
-	const float DB = 0.3f * PI / 180.f;           // 0.3° 死区
+	const float DB = 0.3f * PI / 180.f;
 	const float RAD2CNT = 8192.f / (2.f * PI);    // ≈1303.8 计数/弧度
 	if (y && y->has_feedback && fabsf(xuc.yaw_diff) > DB)
 		y->setangle += KY * xuc.yaw_diff * RAD2CNT;
@@ -217,9 +237,11 @@ void RC::Decode()
 	else {
 		pd_Rx = xQueueReceive(*queueHandler, m_frame, NULL);
 	}
-
+	if (pd_Rx != pdTRUE) return;
 	if (sizeof(m_frame) < 18) return;
 	if ((m_frame[0] | m_frame[1] | m_frame[2] | m_frame[3] | m_frame[4] | m_frame[5]) == 0)return;
+
+	last_rc_tick = xTaskGetTickCount();//收到有效帧
 
 	rc.ch[0] = ((m_frame[0] | m_frame[1] << 8) & 0x07FF) - 1024;
 	rc.ch[1] = ((m_frame[1] >> 3 | m_frame[2] << 5) & 0x07FF) - 1024;

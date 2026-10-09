@@ -75,8 +75,7 @@ void CONTROL::PANTILE::Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int
 	// 速度模式：摇杆推多少就给多大角速度，传 0 就立刻刹停
 	const float max_dm_speed = PI; // 最大 180°/s
 	yaw_speed_out = (float)ch_dm_yaw / 660.f * max_dm_speed;
-	DMmotor[1].setSpeed = yaw_speed_out                                  // 手动微调（rad/s）
-		+ yaw_lock_Kp * (yaw_lock_pos - DMmotor[1].pos); // 软锁回位
+	
 
 }
 
@@ -140,7 +139,8 @@ void CONTROL::PANTILE::Update()
 	if (DMmotor[1].decoded)
 	{
 		if (!yaw_lock_ready) { yaw_lock_pos = DMmotor[1].pos; yaw_lock_ready = true; }
-		DMmotor[1].setSpeed = yaw_lock_Kp * (yaw_lock_pos - DMmotor[1].pos);
+		DMmotor[1].setSpeed = yaw_speed_out                                  // 手动微调（rad/s）
+			+ yaw_lock_Kp * (yaw_lock_pos - DMmotor[1].pos); // 软锁回位
 	}
 
 }

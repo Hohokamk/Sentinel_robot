@@ -64,7 +64,7 @@ DMMOTOR DMmotor[2] = {
 CAN can1, can2;
 UART uart1, uart2, uart3, uart4, uart5, uart6;
 TIM  timer;
-IMU imu_pantile;
+IMU imu_pantile,imu_chassis;
 DELAY delay;
 RC rc;
 POWER power;
@@ -87,10 +87,13 @@ int main(void)
 	can2.Init(CAN2);
 	timer.Init(BASE, TIM3, 1000).BaseInit();
 
-	imu_pantile.Init(&uart5, UART5, 115200, CH010);
+	imu_pantile.Init(&uart2, USART2, 115200, CH010);   // 头部，发射头
+	imu_chassis.Init(&uart5, UART5, 115200, CH010);   // 身体，大yaw桶
+	
 	rc.Init(&uart1, USART1, 100000);
-	power.Init(&uart4,UART4,9600);
-	xuc.Init(&uart3, USART3, 115200);
+	
+	//power.Init(&uart4,UART4,9600);
+	xuc.Init(&uart4, UART4, 921600); // v1 COMMAND34 / STATE101, PC10 TX / PC11 RX
 
 	para.Init();
 	ctrl.init_dm();
@@ -107,11 +110,11 @@ int main(void)
 			& can1_motor[2],
 			& can1_motor[3]
 	});
-
-	task.Init();
 	//POS模式的PID参数：位置死区
 	can1_motor[2].pos_deadband = 3.0f;    // 拨盘：减速 36:1，输出 0.08°
 	can1_motor[3].pos_deadband = 0.3f;    // M6020：直驱，0.3°
+	task.Init();
+	
 }
 
 

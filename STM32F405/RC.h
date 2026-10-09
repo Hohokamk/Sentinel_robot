@@ -6,6 +6,7 @@
 
 #define RC_STATE(s0, s1) ( ((s0) << 8) | (s1) )
 #define TIMEOUT_TICKS 50        // 50 × 5ms = 250ms
+#define RC_LOST_MS 100 
 
 /*
 左拨码s[0],右拨码s[1]
@@ -13,7 +14,6 @@
 
 右摇杆 上下 ch[1]
 右摇杆 左右 ch[0]
-左摇杆 左右 ch[2]
 左摇杆 上下 ch[3]
 
 */
@@ -61,6 +61,9 @@ private:
 	uint8_t m_frame[UART_MAX_LEN]{};
 	uint16_t pc_timeout = 0;
 	uint16_t last_rx_count = 0;
+	uint32_t last_rc_tick = 0;   // 最后一次收到【有效】DBUS 帧的时刻
+	uint16_t rc_lost_cnt = 0;    // 失联次数，上车 watch 用（可选）
+
 };
 
 extern RC rc;

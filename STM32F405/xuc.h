@@ -1,7 +1,7 @@
 #pragma once
 #include "stm32f4xx_hal.h"
 #include "usart.h"
-//#include <cstring>
+#include <cstring>
 
 #include "FreeRTOS.h"
 #include <judgement.h>
@@ -23,22 +23,13 @@ struct TxPacket
 	uint16_t checksum = 0;
 }__attribute__((packed));
 
-//struct RxPacket
-//{
-//	uint8_t header = 0xA5;
-//
-//	uint16_t checksum = 0;
-//};
-
 class XUC
 {
 public:
 
 	TxPacket TxNuc;
-	/*RxPacket RxNuc;*/
 
 	float feedforward = 1.2f;
-	//FTY 25/2/16
 	float yaw;
 	float pitch;
 	float yaw_diff;
@@ -46,7 +37,6 @@ public:
 	float distance;
 	bool fireadvice = false;
 	float v_y;
-	//Navigation
 	float speed_x = 0, speed_y = 0, prespeedx, prespeedy;
 	float yaw_bias = -2.7;
 	uint16_t rx_count = 0;
@@ -127,11 +117,7 @@ public:
 		0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 	};
 
-	uint16_t getCRC16CheckSum(const uint8_t* pchMessage, uint32_t dwLength, uint16_t wCRC);
-	uint32_t verifyCRC16CheckSum(const uint8_t* pchMessage, uint32_t dwLength);
-	void appendCRC16CheckSum(uint8_t* pchMessage, uint32_t dwLength);
-
-	//uint8_t predata[48];
+	
 
 private:
 
@@ -144,12 +130,6 @@ private:
 	uint8_t m_frame[UART_MAX_LEN]{};
 	uint8_t tx_data[64];
 
-	//float u8_to_float(uint8_t* p) {
-	//	float s{}; uint8_t ch[4];
-	//	ch[0] = p[3]; ch[1] = p[2]; ch[2] = p[1]; ch[3] = p[0];
-
-	//	memcpy(&s, p, 4); return s;
-	//}
 	float FR4(uint8_t* p)
 	{
 		float s;
