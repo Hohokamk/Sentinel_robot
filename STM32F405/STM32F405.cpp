@@ -112,7 +112,7 @@ int main(void)
 	});
 	//POS模式的PID参数：位置死区
 	can1_motor[2].pos_deadband = 3.0f;    // 拨盘：减速 36:1，输出 0.08°
-	can1_motor[3].pos_deadband = 0.3f;    // M6020：直驱，0.3°
+	can1_motor[3].pos_deadband = 0.05f;    // M6020：直驱，0.3°
 	task.Init();
 	
 }
