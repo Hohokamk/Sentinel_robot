@@ -42,6 +42,10 @@ void XUC::Decode()//解码接收数据
 		fireadvice = m_frame[21] & 0x01;
 		v_y = FR4(m_frame + 25);
 
+		// 导航下行（帧尾追加，与自瞄同帧）
+		speed_x = FR4(m_frame + 30);
+		speed_y = FR4(m_frame + 34);
+
 	++rx_count;
 }
 

@@ -59,6 +59,11 @@ void RC::OnPC()
 	if (pc_timeout == 0) {
 		ctrl.shooter.openRub = false;
 		ctrl.shooter.auto_shoot = false;
+		ctrl.chassis.speedx = 0;      // ← 补：视觉失联 ⇒ 底盘停
+		ctrl.chassis.speedy = 0;
+		ctrl.chassis.speedz = 0;
+		xuc.prespeedx = 0;
+		xuc.prespeedy = 0;
 		return;
 	}
 
@@ -71,10 +76,30 @@ void RC::OnPC()
 	//yaw使用位置环
 	Motor* y = ctrl.pantile_motor[CONTROL::PANTILE::YAW];
 	const float KY = 0.5f;                        // 0.3~1.0，<1 留阻尼
-	const float DB = 0.3f * PI / 180.f;
 	const float RAD2CNT = 8192.f / (2.f * PI);    // ≈1303.8 计数/弧度
 	if (y && y->has_feedback && fabsf(xuc.yaw_diff) > DB)
 		y->setangle += KY * xuc.yaw_diff * RAD2CNT;
+
+	
+
+	// ① 先把目标钳到合法范围
+	const float tgt_x = std::max(std::min(xuc.speed_x * para.K_NAV, para.NAV_MAX), -para.NAV_MAX);
+	const float tgt_y = std::max(std::min(xuc.speed_y * para.K_NAV, para.NAV_MAX), -para.NAV_MAX);
+
+	float dvx = tgt_x - xuc.prespeedx;
+	dvx = std::max(std::min(dvx, para.DV_MAX), -para.DV_MAX);
+	float dvy = tgt_y - xuc.prespeedy;
+	dvy = std::max(std::min(dvy, para.DV_MAX), -para.DV_MAX);
+
+
+	xuc.prespeedx += dvx;                          // 变成"本周期实际允许的速度"
+	xuc.prespeedy += dvy;
+
+	// 限幅
+	ctrl.chassis.speedx = std::max(std::min(xuc.prespeedx, para.NAV_MAX), -para.NAV_MAX);
+	ctrl.chassis.speedy = std::max(std::min(xuc.prespeedy, para.NAV_MAX), -para.NAV_MAX);
+	ctrl.chassis.speedz = 0;
+
 
 	//开火
 	ctrl.shooter.openRub = true;
@@ -158,7 +183,7 @@ void RC::RC_Control() {
 			ctrl.chassis.speedx = 0;
 			ctrl.chassis.speedy = 0;
 			//先要读取云台的角度，根据云台的方向计算出具体的speedx和speedy
-			ctrl.chassis.Keep_Direction();//重点是写这个按照云台的角度来计算出speedx和speedy，以云台的角度为参考系
+			ctrl.chassis.Keep_Direction(rc.ch[1], rc.ch[0]); //重点是写这个按照云台的角度来计算出speedx和speedy，以云台的角度为参考系
 			//其实就是重新计算speedx和speedy，把之前的覆盖
 			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3],0);
 			break;

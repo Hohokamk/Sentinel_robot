@@ -7,7 +7,7 @@
 #include <judgement.h>
 #include "pid.h"
 #include <string.h>
-#define XUC_FRAME_LEN 32
+#define XUC_FRAME_LEN 40
 struct TxPacket
 {
 	uint8_t header = 0x5A;

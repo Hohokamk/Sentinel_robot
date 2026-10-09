@@ -81,14 +81,30 @@ void CONTROL::PANTILE::Control_Pantile(int32_t ch_dji_yaw, int32_t ch_pitch, int
 
 void CONTROL::PANTILE::Keep_Pantile(float angleKeep, PANTILE::TYPE type,IMU frameOfReference)
 {
-	
+	//下面是写好的函数，注意有两个变量要写到para里面，这里单独使用一个死区和pid
+	//Motor* y = ctrl.pantile_motor[PANTILE::TYPE::YAW];
+	//if (!y || !y->has_feedback) return;
+
+	//// frameOfReference 传 imu_pantile ⇒ 它的 yaw 就是枪口世界朝向
+	//const float err = ctrl.GetDelta(angleKeep - frameOfReference.GetAngleYaw());
+	//if (fabsf(err) < KEEP_DB) return;                    // 死区，防抖
+
+	//y->setangle += KEEP_KP * err * (8192.f / 360.f);     // 度 → 编码值
 }
 
-void CONTROL::CHASSIS::Keep_Direction()
+
+void CONTROL::CHASSIS::Keep_Direction(int32_t ch_fwd, int32_t ch_left)
 {
+	const float dyaw = ctrl.GetDelta(imu_pantile.GetAngleYaw() - imu_chassis.GetAngleYaw());
+	const float rad = dyaw * PI / 180.f;
 
+	const float fwd = (float)ch_fwd * 4000.f / 660.f;   // 前后
+	const float left =-(float)ch_left * 4000.f / 660.f;   // 左右
 
+	speedx = fwd * cosf(rad) - left * sinf(rad);
+	speedy = fwd * sinf(rad) + left * cosf(rad);
 }
+
 
 void CONTROL::CHASSIS::Update()
 {

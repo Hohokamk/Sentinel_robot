@@ -39,6 +39,10 @@ public:
 	float bullet_step{}; float bullet_lead_max{};
 	float dm_pitch_min{}; 
 	float dm_pitch_max{};
+	// 底盘导航：视觉速度 → rpm
+	float DV_MAX{};              // 每周期(5ms)最多变 200rpm
+	float NAV_MAX{};              // 与摇杆量程对齐
+	float K_NAV{};        // 速度增益
 
 	void Init();
 

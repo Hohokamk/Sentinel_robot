@@ -23,7 +23,7 @@ public:
 		PID chassis_reset{};
 		int32_t speedx{}, speedy{}, speedz{};
 		
-		void Keep_Direction();
+		void Keep_Direction(int32_t ch_fwd, int32_t ch_left);
 
 		void Update();
 		float Ramp(float setval, float curval, uint32_t RampSlope);

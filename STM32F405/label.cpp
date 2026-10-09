@@ -13,7 +13,11 @@ void PARAMETER::Init()
 	yaw_center = 8096.f, yaw_span = 1896.f;
 	bullet_step = 42130.29f;bullet_lead_max = 84260.58f;
 	dm_pitch_min = -0.55f;   
-	dm_pitch_max = +0.4f;   
+	dm_pitch_max = +0.4f;  
+	// 底盘导航：视觉速度 → rpm
+	DV_MAX = 200.f;                    // 每周期(5ms)最多变 200rpm
+	NAV_MAX = 4000.f;                  // 与摇杆量程对齐
+	K_NAV = 159.f;           // 速度增益
 }
 
 
