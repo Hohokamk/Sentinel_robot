@@ -668,9 +668,6 @@
     <ClInclude Include="tim.h">
       <Filter>Header files\Inc\basic</Filter>
     </ClInclude>
-    <ClInclude Include="sysclk.h">
-      <Filter>Header files\Inc\basic</Filter>
-    </ClInclude>
     <ClInclude Include="usart.h">
       <Filter>Header files\Inc\basic</Filter>
     </ClInclude>
@@ -726,6 +723,9 @@
       <Filter>Header files\Inc\device</Filter>
     </ClInclude>
     <ClInclude Include="supercap.h">
+      <Filter>Header files\Inc\device</Filter>
+    </ClInclude>
+    <ClInclude Include="sysclk.h">
       <Filter>Header files\Inc\device</Filter>
     </ClInclude>
   </ItemGroup>

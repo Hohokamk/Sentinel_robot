@@ -20,9 +20,11 @@ struct TxPacket
 	float aim_x;
 	float aim_y;
 	float aim_z;
+	uint16_t rx_total = 0;      // ← 加这
+	uint16_t rx_count = 0;      // ← 加这（和 XUC 的成员重名也行，作用域不同）
 	uint16_t checksum = 0;
 }__attribute__((packed));
-
+static_assert(sizeof(TxPacket) == 32, "TxPacket layout changed");
 class XUC
 {
 public:
@@ -41,6 +43,7 @@ public:
 	float yaw_bias = -2.7;
 	uint16_t rx_count = 0;
 	uint16_t crc_err = 0;
+	uint16_t rx_total = 0;      // ← 新增
 
 	float x, y, z;
 	float vx, vy, vz;

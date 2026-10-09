@@ -172,7 +172,7 @@ void Motor::getmax(const type_t type)
 	switch (type)
 	{
 	case M3508:
-		maxcurrent = 16384;
+		maxcurrent = 13000;
 		maxspeed = 5000;
 		break;
 	case M3510:
@@ -193,7 +193,7 @@ void Motor::getmax(const type_t type)
 		maxspeed = 300;
 		break;
 	case M6020:
-		maxcurrent = 3000;
+		maxcurrent = 15000;
 		maxspeed = 80;
 		adjspeed = 10;
 		break;
