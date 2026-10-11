@@ -24,12 +24,14 @@ void XUC::Init(UART* huart, USART_TypeDef* Instance, uint32_t BaudRate)
 void XUC::Decode()//解码接收数据
 {
 	//检查收到的数据包是否正确，四个过滤
-	if (!m_uart) return;
-	pd_Rx = xQueueReceive((m_uart->UartQueueHandler), m_frame, NULL);
+	if (!m_uart) return;// 检查是否初始化
+	pd_Rx = xQueueReceive((m_uart->UartQueueHandler), m_frame, 0);
 	if (pd_Rx != pdTRUE) return;
 
 	++rx_total;
-	if (m_frame[0] != 0xA5) return;// 没数据就退出，别等
+	if (m_uart->dataDmaNum != XUC_FRAME_LEN) return;// 检查数据长度，下行要40字节
+	if (m_frame[0] != 0xA5) return;// 检查针头
+	
 	if (!VerifyCRC16CheckSum(m_frame, XUC_FRAME_LEN)) { ++crc_err; return; }
 	//开始解码
 
@@ -53,7 +55,7 @@ void XUC::Decode()//解码接收数据
 
 void XUC::Encode()//编码要发送的数据
 {
-	own_color = judgement.data.robot_status_t.robot_id <= 7 ? RED : BLUE;
+	/*own_color = judgement.data.robot_status_t.robot_id <= 7 ? RED : BLUE;*/
 	//TxPacket TxNuc;  // 创建一个数据包实例
 
 	TxNuc.header = 0x5A;
@@ -67,8 +69,8 @@ void XUC::Encode()//编码要发送的数据
 	TxNuc.aim_y = aim_y;
 	TxNuc.aim_z = aim_z;
 
-	TxNuc.rx_total = rx_total;
-	TxNuc.rx_count = rx_count;
+	//TxNuc.rx_total = rx_total; 
+	//TxNuc.rx_count = rx_count;
 
 	TxNuc.checksum = 0;  // 初始化校验和为0
 

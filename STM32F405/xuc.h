@@ -4,7 +4,6 @@
 #include <cstring>
 
 #include "FreeRTOS.h"
-#include <judgement.h>
 #include "pid.h"
 #include <string.h>
 #define XUC_FRAME_LEN 40
@@ -20,11 +19,11 @@ struct TxPacket
 	float aim_x;
 	float aim_y;
 	float aim_z;
-	uint16_t rx_total = 0;      // ← 加这
-	uint16_t rx_count = 0;      // ← 加这（和 XUC 的成员重名也行，作用域不同）
+	//uint16_t rx_total = 0;      // ← 加这 //恢复28字节要把这几个删了
+	//uint16_t rx_count = 0;      // ← 加这（和 XUC 的成员重名也行，作用域不同）
 	uint16_t checksum = 0;
 }__attribute__((packed));
-static_assert(sizeof(TxPacket) == 32, "TxPacket layout changed");
+static_assert(sizeof(TxPacket) == 28, "TxPacket layout changed");
 class XUC
 {
 public:
