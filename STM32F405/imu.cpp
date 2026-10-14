@@ -67,6 +67,15 @@ void IMU::Decode()
 					angle.roll = R4(rxData + offset + 52);
 					angle.yaw = R4(rxData + offset + 56);
 
+					timestamp = U4(rxData + offset + 8);   // ← 采样时间戳
+					data_ok = fabsf(angle.roll) <= 180.f
+						&& fabsf(angle.pitch) <= 90.f
+						&& fabsf(angle.yaw) <= 180.f;  // NaN/Inf 比较恒为 false，天然拦掉
+					last_rx_tick = xTaskGetTickCount();
+					init_done = true;
+
+					
+
 				}
 			}
 			crc = 0;
@@ -101,11 +110,20 @@ float IMU::GetAngleYaw()
 {
 	return angle.yaw;
 }
+uint32_t IMU::GetTimestamp() { return timestamp; }
 
-float IMU::getangularvelocitypitch()
+bool IMU::IsValid()
 {
-	return angularvelocity.pitch;
+	return init_done
+		&& (xTaskGetTickCount() - last_rx_tick) <= pdMS_TO_TICKS(50)
+		&& data_ok;
 }
+
+
+float IMU::GetGyroRoll() { return angularvelocity.roll; }
+float IMU::GetGyroPitch() { return angularvelocity.pitch; }
+float IMU::GetGyroYaw() { return angularvelocity.yaw; }
+
 
 float IMU::GetAnglePitch()
 {
@@ -117,14 +135,9 @@ float IMU::GetAngleRoll()
 	return angle.roll;
 }
 
-float* IMU::GetAcceleration()
-{
-	float temp[3]{};
-	temp[0] = acceleration.x;
-	temp[1] = acceleration.y;
-	temp[2] = acceleration.z;
-	return temp;
-}
+float IMU::GetAccX() { return acceleration.x; }
+float IMU::GetAccY() { return acceleration.y; }
+float IMU::GetAccZ() { return acceleration.z; }
 
 bool IMU::Check(uint8_t* pdata, uint8_t len, uint32_t com)
 {

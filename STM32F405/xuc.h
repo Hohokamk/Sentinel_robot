@@ -7,24 +7,33 @@
 #include <judgement.h>
 #include "pid.h"
 #include <string.h>
+#include <cstddef>
 #define XUC_FRAME_LEN 40
 struct TxPacket
 {
-	uint8_t header = 0x5A;
-	uint8_t detect_color : 1;  // 0-red 1-blue
-	bool reset_tracker : 1;
-	uint8_t reserved : 6;
-	float roll;
-	float pitch;
-	float yaw;
-	float aim_x;
-	float aim_y;
-	float aim_z;
-	uint16_t rx_total = 0;      // ← 加这
-	uint16_t rx_count = 0;      // ← 加这（和 XUC 的成员重名也行，作用域不同）
+	uint8_t  header = 0x5A;
+	uint8_t  detect_color : 1;
+	bool     reset_tracker : 1;
+	uint8_t  reserved : 6;
+	uint8_t  rsv0[2]{};
+
+	float    p_roll, p_pitch, p_yaw;
+	float    p_gx, p_gy, p_gz;
+	uint32_t p_time;
+	uint8_t  p_id, p_valid;
+	uint8_t  rsv1[2]{};
+
+	float    c_roll, c_pitch, c_yaw;
+	uint32_t c_time;
+	uint8_t  c_id, c_valid;
+	uint8_t  rsv2[2]{};
+
+	uint16_t rx_total = 0;
+	uint16_t rx_count = 0;
+	uint8_t  rsv3[2]{};
 	uint16_t checksum = 0;
 }__attribute__((packed));
-static_assert(sizeof(TxPacket) == 32, "TxPacket layout changed");
+static_assert(sizeof(TxPacket) == 64, "TxPacket layout changed");
 class XUC
 {
 public:
@@ -131,7 +140,7 @@ private:
 
 	uint8_t* frame;
 	uint8_t m_frame[UART_MAX_LEN]{};
-	uint8_t tx_data[64];
+	uint8_t tx_data[96];
 
 	float FR4(uint8_t* p)
 	{

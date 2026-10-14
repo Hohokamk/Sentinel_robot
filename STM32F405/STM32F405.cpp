@@ -33,7 +33,7 @@ Motor can1_motor[CAN1_MOTOR_NUM] = {
 	Motor(M3508,SPD,shooter, ID2, PID(10.f, 0.0f, 1.5f,0.f)),
 	Motor(M3508,SPD,shooter, ID3, PID(10.f, 0.0f, 1.5f,0.f)),
 	Motor(M2006,POS,supply, ID7, PID(10.0f, 0.03f, 0.5f,0.f), PID(1.0f, 0.01f, 0.02f,0.f)),
-	Motor(M6020,POS,pantile, ID5, PID(80.0f, 0.08f, 0.0f,0.f),PID(2.0f, 0.0f, 0.5f,0.7f)),
+	Motor(M6020,POS,pantile, ID5, PID(200.0f, 0.08f, 0.0f,0.f),PID(5.0f, 0.0f, 0.5f,0.5f)),
 };
 	/*Motor(M3508,SPD,chassis, ID1, PID(10.f, 0.0f, 1.5f,0.f)),
 	Motor(M2006,SPD,chassis, ID2, PID(10.f, 0.0f, 1.5f,0.f)),
@@ -88,7 +88,9 @@ int main(void)
 	timer.Init(BASE, TIM3, 1000).BaseInit();
 
 	imu_pantile.Init(&uart2, USART2, 115200, CH010);   // 头部，发射头
+	imu_pantile.id = 1;
 	imu_chassis.Init(&uart5, UART5, 115200, CH010);   // 身体，大yaw桶
+	imu_chassis.id = 2;
 	
 	rc.Init(&uart1, USART1, 100000);
 	

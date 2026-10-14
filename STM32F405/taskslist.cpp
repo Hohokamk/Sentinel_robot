@@ -161,7 +161,7 @@ void ArmTask(void* pvParameters)
 		DMmotor[0].DMmotorinit(can1);
 		DMmotor[1].DMmotorinit(can2);
 		power.Send();
-		if (ctrl.mode == CONTROL::AUTOAIM) xuc.Encode();
+		if (ctrl.mode == CONTROL::AUTO) xuc.Encode();
 		vTaskDelay(100);
 	}
 }

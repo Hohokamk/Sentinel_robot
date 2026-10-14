@@ -54,33 +54,42 @@ void XUC::Decode()//解码接收数据
 void XUC::Encode()//编码要发送的数据
 {
 	own_color = judgement.data.robot_status_t.robot_id <= 7 ? RED : BLUE;
-	//TxPacket TxNuc;  // 创建一个数据包实例
 
 	TxNuc.header = 0x5A;
 	TxNuc.detect_color = !own_color;
-	TxNuc.reset_tracker = 0;
+	TxNuc.reset_tracker = 0;          // TODO: 进 AUTO 的边沿置 1 发一帧
 	TxNuc.reserved = 15;
-	TxNuc.roll = imu_pantile.GetAngleRoll();
-	TxNuc.pitch = imu_pantile.GetAnglePitch();
-	TxNuc.yaw = imu_pantile.GetAngleYaw();
-	TxNuc.aim_x = aim_x;
-	TxNuc.aim_y = aim_y;
-	TxNuc.aim_z = aim_z;
 
+	// ===== 云台 IMU 块（p_*）=====
+	TxNuc.p_roll = imu_pantile.GetAngleRoll();
+	TxNuc.p_pitch = imu_pantile.GetAnglePitch();
+	TxNuc.p_yaw = imu_pantile.GetAngleYaw();
+	TxNuc.p_gx = imu_pantile.GetGyroRoll();
+	TxNuc.p_gy = imu_pantile.GetGyroPitch();
+	TxNuc.p_gz = imu_pantile.GetGyroYaw();
+	TxNuc.p_time = imu_pantile.GetTimestamp();
+	TxNuc.p_id = imu_pantile.id;
+	TxNuc.p_valid = imu_pantile.IsValid() ? 1 : 0;
+
+	// ===== 底盘 IMU 块（c_*，无角速度）=====
+	TxNuc.c_roll = imu_chassis.GetAngleRoll();
+	TxNuc.c_pitch = imu_chassis.GetAnglePitch();
+	TxNuc.c_yaw = imu_chassis.GetAngleYaw();
+	TxNuc.c_time = imu_chassis.GetTimestamp();
+	TxNuc.c_id = imu_chassis.id;
+	TxNuc.c_valid = imu_chassis.IsValid() ? 1 : 0;
+
+	// ===== 回传计数 =====
 	TxNuc.rx_total = rx_total;
 	TxNuc.rx_count = rx_count;
 
-	TxNuc.checksum = 0;  // 初始化校验和为0
-
+	TxNuc.checksum = 0;                       // 可留可不留，CRC 会覆写它
 	// 计算数据包的总大小
-	int packet_size = sizeof(TxNuc);
-
-	// 将数据包复制到发送缓冲区
+	int packet_size = sizeof(TxNuc);          // = 64
+	// 将数据包复制到发送缓冲区,缓冲区大小为96
 	memcpy(tx_data, &TxNuc, packet_size);
-
 	// 计算并附加 CRC16 校验和
-	AppendCRC16CheckSum(tx_data, packet_size);
-
+	AppendCRC16CheckSum(tx_data, packet_size);   // 覆盖 [0..61]，CRC 落 [62..63]
 	// 发送数据
 	m_uart->DMATransmit(tx_data, packet_size);//AI说这个比下面那个好
 	//m_uart->UARTTransmit(tx_data, packet_size);

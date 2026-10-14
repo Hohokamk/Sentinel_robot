@@ -2,6 +2,7 @@
 #include "stm32f4xx.h"
 #include "usart.h"
 #include <string.h>
+#include <cmath>
 enum IMU_TYPE { IMU601 = 0, CH010, HI226 };
 
 class IMU
@@ -25,11 +26,29 @@ public:
 	float GetAngleRoll();
 	float getangularvelocitypitch();
 	float* GetAcceleration();
+	float GetAccX();
+	float GetAccY();
+	float GetAccZ();
+	float GetGyroRoll();
+	float GetGyroPitch();
+	float GetGyroYaw();
+
+	uint8_t  id = 0;                    // 传感器身份（装配处指定）
+	uint32_t GetTimestamp();
+	bool     IsValid();
+
+
 	int16_t getword(uint8_t HighBit, uint8_t LowBits);
 
 	BaseType_t pd_Rx = false;
 	QueueHandle_t* queueHandler = NULL;
 private:
+
+	uint32_t timestamp = 0;             // 0x91 offset 8 system_time (ms)
+	uint32_t last_rx_tick = 0;
+	bool     init_done = false;
+	bool     data_ok = false;
+
 	Angle angle;
 	AngularVelocity angularvelocity;
 	Acceleration acceleration;

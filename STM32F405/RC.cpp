@@ -46,8 +46,8 @@ void RC::OnRC()
 
 void RC::OnPC()
 {
-	// 只在 AUTOAIM 模式接管，其余模式完全不碰
-	if (ctrl.mode != CONTROL::AUTOAIM) { ctrl.shooter.auto_shoot = false; return; }
+	// 只在 AUTO 模式接管，其余模式完全不碰
+	if (ctrl.mode != CONTROL::AUTO) { ctrl.shooter.auto_shoot = false; return; }
 	// 数据新鲜度：rx_count 变了就重置超时，否则递减
 	if (xuc.rx_count != last_rx_count) {
 		last_rx_count = xuc.rx_count;
@@ -118,11 +118,11 @@ void RC::RC_CheckState() {
 	switch (RC_STATE(rc.s[0], rc.s[1]))
 	{
 	case RC_STATE(UP, UP):
-		ctrl.mode = CONTROL::ROTATION;
+		ctrl.mode = CONTROL::AUTO;
 		break;
 
 	case RC_STATE(UP, MID):
-		ctrl.mode = CONTROL::AUTOAIM;
+		ctrl.mode = CONTROL::STOP;
 		break;
 
 	case RC_STATE(UP, DOWN):
@@ -150,13 +150,12 @@ void RC::RC_CheckState() {
 		break;
 
 	case RC_STATE(DOWN, DOWN):
-		ctrl.mode = CONTROL::STOP;
+		ctrl.mode = CONTROL::ROTATION;
 		break;
 
 	default:
 		break;
 	}
-
 }
 
 void RC::RC_Control() {
@@ -194,7 +193,7 @@ void RC::RC_Control() {
 			ctrl.pantile.Control_Pantile(rc.ch[2], rc.ch[3],0);
 			break;
 
-		case CONTROL::AUTOAIM://自动瞄准	
+		case CONTROL::AUTO://自动瞄准	
 			ctrl.chassis.speedx = rc.ch[1] * 4000.f / 660.f;
 			ctrl.chassis.speedy = -1 * rc.ch[0] * 4000.f / 660.f;
 			ctrl.chassis.speedz = rc.ch[2];
