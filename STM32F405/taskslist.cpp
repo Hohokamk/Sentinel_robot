@@ -99,12 +99,19 @@ void MotorUpdateTask(void* pvParameters)
 void CanTransimtTask(void* pvParameters)
 {
 	TickType_t xlastWakeTime1 = xTaskGetTickCount();//不知道为什么要从while里面挪出来，这个函数是FreeRTOS的一个函数，获取当前任务的时间戳
+
+	/* 🔴 原本用 (timer.counter++) % 3，而 timer.counter 是【全局变量】，
+	 *    在两处各 +1 一次：tim.cpp 的 HAL_TIM_PeriodElapsedCallback（TIM3 @1kHz
+	 *    中断）＋ 本任务（也是 1 kHz）。余数步进 = (1000·Δt+1) mod 3 —— 只有
+	 *    SysTick 与 TIM3 的相位【恰好】使总步进为 3 的倍数时，才等价于「每 3ms
+	 *    各发一帧」；相位一漂（中断被抢占、tick 抖动）就变成「某帧连发两次、
+	 *    另一帧间隔 6ms」。对底盘 4×M3508 的电流环 = 控制周期抖动。
+	 *    ⇒ 改用本任务私有计数器，只在本任务递增，与任何中断无关。*/
+	static uint8_t can_div = 0;
+
 	while (true)
 	{
-
-		
-
-		switch ((timer.counter++) % 3)
+		switch (++can_div % 3)
 		{
 		case 0:
 				DMmotor[0].DMmotor_transmit(can1);
@@ -142,26 +149,59 @@ void ControlTask(void* pvParameters)
 
 void DecodeTask(void* pvParameters)
 {
+	/* ---- 上行发送分频（2026-10-15 新增）----
+	 *
+	 * 原来 xuc.Encode() 在 ArmTask(100 ms) ⇒ 三帧（0x01/0x02/0x81）一起只有 10 Hz。
+	 * 现挪到本任务：5 ms 一拍，%4 ⇒ 每 20 ms 一次 = **50 Hz**。
+	 *
+	 * 为什么先上 50 Hz 而不是 V2 §6.2 建议的 100 Hz：
+	 *   三帧合计 106 B（0x01 46 + 0x02 34 + 0x81 26）。921600 baud 下 1 B ≈ 10.85 µs
+	 *   ⇒ 串口线上时间 ≈ **1.15 ms**。100 Hz 需每 10 ms 发一次（占线 11.5%），
+	 *   50 Hz 只占 **5.75%**，留一半余量给重传与抖动。
+	 *   ⚠️ 这是【首次实测值】：上车先看 uart4.tx_busy_reject 是否恒 0、
+	 *      DecodeTask 实际周期是否还稳 5 ms，再决定往 100 Hz 提。
+	 *
+	 * ⚠️ 计数器是本任务的函数内 static —— 必须【只在这里】递增。
+	 *    原因见 CanTransimtTask() 里的同类说明。
+	 */
+	static uint8_t tx_div = 0;
+
 	while (true)
 	{
 		rc.Decode();
 		imu_pantile.Decode();
 		imu_chassis.Decode();
 		xuc.Decode();
-	
+
+		/* ---- 上行发送（从 ArmTask 挪来）----
+		 * 同任务的好处：xuc.Decode() 与 xuc.Encode() 在同一时间轴上，
+		 * 抓包/看 watch 时"这一周期收了什么、发的是什么"能直接对上。*/
+		if (ctrl.mode == CONTROL::AUTO)
+		{
+			if (++tx_div >= 4) { tx_div = 0; xuc.Encode(); }
+		}
+		else
+		{
+			tx_div = 0;   // 非 AUTO 时清零 ⇒ 一进 AUTO 立刻发一帧，不用等 4 拍
+		}
+
 		vTaskDelay(5);
 	}
 }
 
 void ArmTask(void* pvParameters)
 {
+	/* ⚠️ xuc.Encode() 已挪到 DecodeTask（50 Hz）。
+	 *   本任务只剩「达妙初始化 + 功率计发送」：
+	 *   - DMmotorinit 各含 1 ms 阻塞 delay，100 ms 周期下无所谓；
+	 *   - power.Send() 是 9600 波特【阻塞】发送，绝不能和上报混在一个任务里。
+	 * 所以 100 ms 的 ArmTask + 512 B 栈（LED_STK_SIZE）现在只干轻活，风险反而降了。*/
 	while (true)
 	{
 		//初始化达妙电机
 		DMmotor[0].DMmotorinit(can1);
 		DMmotor[1].DMmotorinit(can2);
 		power.Send();
-		if (ctrl.mode == CONTROL::AUTO) xuc.Encode();
 		vTaskDelay(100);
 	}
 }

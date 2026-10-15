@@ -22,6 +22,7 @@
 #include "stm32f4xx_hal_gpio.h"
 #include "label.h"
 #include "queue.h"
+#include "tim.h"		// TIM::NowUs() —— V2 协议的 µs 时间戳
 
 UART& UART::Init(USART_TypeDef* Instance, const uint32_t BaudRate)
 {
@@ -456,7 +457,30 @@ void UART::OnUARTITHandler(void)
 		__HAL_UART_CLEAR_IDLEFLAG(&huart);
 		__HAL_DMA_DISABLE(huart.hdmarx);
 
+		/* ---- ① 本帧真实长度：NDTR 是"剩余未传输字节数"，随接收【递减】----
+		 * 必须【先 DISABLE 再读】：DMA 还在跑时 NDTR 随时在变。
+		 *   重装时 NDTR = UART_MAX_LEN；每收 1 字节减 1 ⇒ 实际长度 = MAX - NDTR。
+		 * ⚠️ 原来的实现直接 SET_COUNTER 重置，DMA 缓冲【不清零】⇒
+		 *    短帧的尾部挂着上一帧的残字节。消费端只能靠这个长度知道数据到哪结束。*/
+		const uint32_t ndtr = huart.hdmarx->Instance->NDTR;
+		uint32_t len = 0u;
+		if (ndtr <= UART_MAX_LEN) len = UART_MAX_LEN - ndtr;   // 正常路径
+		else { len = UART_MAX_LEN; ++rx_overflow; }            // NDTR 异常，防御性钳位
+		rx_len = (uint16_t)len;
+
+		/* ---- ② 到达时刻（V2 的 sample_time_us 基准）----
+		 * 取在 IDLE 判定之后、任何搬运之前，尽量贴近"最后一个字节落地"的时刻。
+		 * ⚠️ 与模块 system_time 对齐需要做线性回归（见 2026-10-15 笔记 A 实验）。*/
+		rx_time_us = TIM::NowUs();
+
+		/* ---- ③ 覆盖丢帧统计 ----
+		 * 队列深度 1：进来时已有数据 ⇒ 本帧会覆盖掉上一帧。
+		 * 原来这个丢失是完全静默的（xQueueOverwriteFromISR 无返回值可查）。*/
+		if (uxQueueMessagesWaitingFromISR((QueueHandle_t)UartQueueHandler) > 0)
+			++rx_drop_cnt;
+
 		pd_Rx = xQueueOverwriteFromISR((QueueHandle_t)UartQueueHandler, m_uartrx, NULL);
+		++rx_cnt;
 
 		DMAClearAllFlags(huart.hdmarx);
 
@@ -504,13 +528,39 @@ extern "C" void DMA1_Stream4_IRQHandler(void)//发送中断
 	uart4.OnDMAITHandler();
 }
 
-void UART::DMATransmit(uint8_t* const pData, const uint32_t Size)
+/* ==========================================================================
+ * DMA 发送
+ *
+ * 🔴 原实现是「无条件 DISABLE → 重装 NDTR/M0AR → ENABLE」，完全不问上一帧
+ *    发完没有。若在途时重装 M0AR/NDTR，会把「上一帧的后半段」和「本次的前半段」
+ *    拼成一条错乱的帧流 —— 上位机 CRC 必挂，且现象是"偶发丢包"，极难查。
+ *
+ *    判据用 NDTR：DMA 传输完成时 NDTR 归 0，所以 `NDTR != 0` 就是"还有在途数据"。
+ *    ⚠️ 这里不依赖 DMA TC 中断，只读寄存器 ⇒ 即使中断没使能也准确。
+ *       （OnDMAITHandler 只在 DMA1_Stream4_IRQHandler 里被调，也就是只有 uart4 的
+ *        TX 有完成回调；其余 UART 的 TX 中断并没有接上，不能靠标志位判断。）
+ *
+ *    时序参考：921600 baud 下 1 字节 ≈ 10.85 µs
+ *      · 46 B  ≈ 0.50 ms   ← xuc 三帧合计，20 Hz 上报绰绰有余
+ *      · 64 B  ≈ 0.69 ms
+ *    所以正常周期（50~100 ms）远大于发包时间，reject 计数应恒为 0；
+ *    一旦非 0，说明有人在极高频调用 Encode()。
+ * ========================================================================== */
+bool UART::DMATransmit(uint8_t* const pData, const uint32_t Size)
 {
+	if (huart.hdmatx->Instance->NDTR != 0u)   // 上一帧还没发完
+	{
+		++tx_busy_reject;
+		return false;                          // 丢弃本次，绝不拼帧
+	}
+
 	__HAL_DMA_DISABLE(huart.hdmatx);
 	huart.hdmatx->Instance->NDTR = Size;
 	huart.hdmatx->Instance->M0AR = reinterpret_cast<uint32_t>(pData);
 	DMAClearAllFlags(huart.hdmatx);
 	__HAL_DMA_ENABLE(huart.hdmatx);
+	++tx_cnt;
+	return true;
 }
 
 

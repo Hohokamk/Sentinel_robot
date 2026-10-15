@@ -4,6 +4,8 @@
 #include "RC.h"
 #include "control.h"
 #include "xuc.h"
+#include "imu.h"
+#include <algorithm>
 
 void RC::Init(UART* huart, USART_TypeDef* Instance, const uint32_t BaudRate)
 {
@@ -46,65 +48,120 @@ void RC::OnRC()
 
 void RC::OnPC()
 {
-	// 只在 AUTO 模式接管，其余模式完全不碰
+	/* 只在 AUTO 模式接管。RC_Control() 先跑并写入摇杆值，
+	 * 本函数后跑 ⇒ 天然覆盖顺序正确，不需要额外插旗标。*/
 	if (ctrl.mode != CONTROL::AUTO) { ctrl.shooter.auto_shoot = false; return; }
-	// 数据新鲜度：rx_count 变了就重置超时，否则递减
-	if (xuc.rx_count != last_rx_count) {
-		last_rx_count = xuc.rx_count;
-		pc_timeout = TIMEOUT_TICKS;          // 例：50 → 50×5ms = 250ms
-	}
-	else if (pc_timeout > 0) --pc_timeout;
 
-	// 失联：让摩擦轮停
-	if (pc_timeout == 0) {
-		ctrl.shooter.openRub = false;
-		ctrl.shooter.auto_shoot = false;
-		ctrl.chassis.speedx = 0;      // ← 补：视觉失联 ⇒ 底盘停
-		ctrl.chassis.speedy = 0;
-		ctrl.chassis.speedz = 0;
-		xuc.prespeedx = 0;
-		xuc.prespeedy = 0;
+	ApplyNav();     // 0x11 → 底盘
+	ApplyAim();     // 0x10 → 云台 / 摩擦轮 / 开火
+}
+
+/* ==========================================================================
+ * 底盘：视觉导航速度（m/s）→ 轮速给定（rpm）
+ *
+ * 口径：三个量级 —— ① 限目标 ② 限增量 ③ 下发。
+ *   限幅的对象是【目标】而不是【输出】，prespeed 因此被夹在 tgt 附近，
+ *   天然不会积压，也就不需要再 clamp 一次。
+ *
+ * 失联语义：NAV 租约到期（NavReady()==false）时，
+ *   - 遥控在线 ⇒ 保留 RC_Control 写的摇杆值（台架调试仍能推杆挪车）
+ *   - 遥控也失联 ⇒ 强制停（两路都没有主人时车必须停）
+ * ========================================================================== */
+void RC::ApplyNav()
+{
+	const bool rc_lost = (xTaskGetTickCount() - last_rc_tick) > pdMS_TO_TICKS(RC_LOST_MS);
+
+	if (xuc.NavReady())
+	{
+		// ① 目标钳位
+		const float tgt_x = std::max(std::min(xuc.nav_vx * para.K_NAV, para.NAV_MAX), -para.NAV_MAX);
+		const float tgt_y = std::max(std::min(xuc.nav_vy * para.K_NAV, para.NAV_MAX), -para.NAV_MAX);
+
+		// ② 变化率限行（每周期最多 ±DV_MAX rpm）
+		float dvx = tgt_x - xuc.prespeedx;
+		dvx = std::max(std::min(dvx, para.DV_MAX), -para.DV_MAX);
+		float dvy = tgt_y - xuc.prespeedy;
+		dvy = std::max(std::min(dvy, para.DV_MAX), -para.DV_MAX);
+
+		xuc.prespeedx += dvx;
+		xuc.prespeedy += dvy;
+
+		// ③ 下发（int32_t 赋值即隐式取整；prespeed 不越界，无须再钳）
+		ctrl.chassis.speedx = (int32_t)xuc.prespeedx;
+		ctrl.chassis.speedy = (int32_t)xuc.prespeedy;
+		ctrl.chassis.speedz = 0;   // nav_wz 首版未启用：转向仍由遥控/策略决定
 		return;
 	}
 
-	//pitch：位置使用增量式
-	const float KP = 0.5f;
-	const float DB = 0.3f * PI / 180.f;
-	if (fabsf(xuc.pitch_diff) > DB)
-		ctrl.pantile.mark_pitch += KP * xuc.pitch_diff;
+	/* --- 无有效导航许可 --- */
+	xuc.prespeedx = 0.f;      // 复位平滑量，避免许可恢复瞬间从残值暴冲
+	xuc.prespeedy = 0.f;
+	if (rc_lost) StopChassis();
+}
 
-	//yaw使用位置环
-	Motor* y = ctrl.pantile_motor[CONTROL::PANTILE::YAW];
-	const float KY = 0.5f;                        // 0.3~1.0，<1 留阻尼
-	const float RAD2CNT = 8192.f / (2.f * PI);    // ≈1303.8 计数/弧度
-	if (y && y->has_feedback && fabsf(xuc.yaw_diff) > DB)
-		y->setangle += KY * xuc.yaw_diff * RAD2CNT;
-
-	
-
-	// ① 先把目标钳到合法范围
-	const float tgt_x = std::max(std::min(xuc.speed_x * para.K_NAV, para.NAV_MAX), -para.NAV_MAX);
-	const float tgt_y = std::max(std::min(xuc.speed_y * para.K_NAV, para.NAV_MAX), -para.NAV_MAX);
-
-	float dvx = tgt_x - xuc.prespeedx;
-	dvx = std::max(std::min(dvx, para.DV_MAX), -para.DV_MAX);
-	float dvy = tgt_y - xuc.prespeedy;
-	dvy = std::max(std::min(dvy, para.DV_MAX), -para.DV_MAX);
-
-
-	xuc.prespeedx += dvx;                          // 变成"本周期实际允许的速度"
-	xuc.prespeedy += dvy;
-
-	// 限幅
-	ctrl.chassis.speedx = std::max(std::min(xuc.prespeedx, para.NAV_MAX), -para.NAV_MAX);
-	ctrl.chassis.speedy = std::max(std::min(xuc.prespeedy, para.NAV_MAX), -para.NAV_MAX);
+void RC::StopChassis()
+{
+	ctrl.chassis.speedx = 0;
+	ctrl.chassis.speedy = 0;
 	ctrl.chassis.speedz = 0;
+	xuc.prespeedx = 0.f;
+	xuc.prespeedy = 0.f;
+}
 
+/* ==========================================================================
+ * 云台 / 发射：0x10 AIM_COMMAND
+ *
+ * ⚠️ 目标来自 xuc.aim_yaw_target / aim_pitch_target —— 这是【绝对目标】，
+ *    由 xuc.cpp 的 HandleAim() 用「参考样本姿态 + 上位机给的误差」一次性
+ *    重建（V2 §7.3）。本函数只做每周期的 IMU 闭环，**不再 += 上位机的误差**。
+ *    这与旧版最大的区别：旧版拿一份会过期的 diff 每 5 ms 累加一次，
+ *    同一份误差被重复使用约 200 次/秒，目标一路顶到限位（10-11 踩过的坑）。
+ *
+ * 误差源用 IMU 而非电机编码器：这样 mark_pitch / setangle 扮演的是
+ * 「速率指令」的角色，误差归零即自然停 —— 视觉重复发同一个目标也不会跑飞。
+ * ========================================================================== */
+void RC::ApplyAim()
+{
+#if XUC_ALLOW_CONTROL == 0
+	/* 只读联调版：0x10 会被完整解析、校验、重建目标并记入 last_reject，
+	 * 但本地不放行 ⇒ 不驱动任何执行器（连摩擦轮都不转）。
+	 * 改这个宏之前必须先完成：
+	 *   A 实验 —— sample_time_us 误差界 ≤ 2 ms（SAMPLE_TIME_VALID）
+	 *   B 实验 —— 单轴 / 参考系 / gyro 符号（AXES_VERIFIED）
+	 * 否则姿态与角速度不在同一可信参考系里，拿来闭环会系统性打偏。*/
+	ctrl.shooter.openRub = false;
+	ctrl.shooter.auto_shoot = false;
+#else
+	if (!xuc.AimReady()) return;   // 租约过期/被拒 ⇒ 云台保持当前位置（不清零！）
 
-	//开火
-	ctrl.shooter.openRub = true;
-	ctrl.shooter.auto_shoot = xuc.fireadvice;
-	
+	const float DB      = 0.3f * PI / 180.f;   // 死区，rad
+	const float DEG2RAD = PI / 180.f;
+	const float RAD2CNT = 8192.f / (2.f * PI);
+
+	/* 外环增益：执行器自身已有位置环（M6020 POS 的 Kp=5），
+	 * 所以外环只做「小步逼近」，取 0.2~0.3 即可。
+	 * 调大之前先看 IMU 误差是否单调收敛 —— 若发散，是方向反了，符号取负。*/
+	const float KP = 0.25f;   // pitch：rad 误差 → 本周期步进
+	const float KY = 0.25f;   // yaw：无量纲 → 本周期步进（× RAD2CNT 转计数）
+
+	/* ---- pitch：IMU 误差驱动 mark_pitch 前进 ----
+	 * 误差取 IMU 口径（不是达妙关节角），这样安装偏置不会变成稳态误差：
+	 * 达妙关节 +δ ⇒ 枪口 pitch +δ ⇒ 误差缩小，闭环自然收敛到 0。*/
+	const float perr = xuc.aim_pitch_target - imu_pantile.GetAnglePitch() * DEG2RAD;
+	if (fabsf(perr) > DB)
+		ctrl.pantile.mark_pitch += KP * perr;
+
+	/* ---- yaw：M6020 POS，setangle 是编码值，ClampAngle 在 PANTILE::Update 里兜底 ----
+	 * 用 WrapPi 取最短路径，防止目标在 ±π 边界时绕远路。*/
+	Motor* y = ctrl.pantile_motor[CONTROL::PANTILE::YAW];
+	const float yerr = xuc::WrapPi(xuc.aim_yaw_target - imu_pantile.GetAngleYaw() * DEG2RAD);
+	if (y && y->has_feedback && fabsf(yerr) > DB)
+		y->setangle += KY * yerr * RAD2CNT;
+
+	/* ---- 摩擦轮与开火：与云台闭环解耦，只看许可位 ---- */
+	ctrl.shooter.openRub    = xuc.aim_friction_en;
+	ctrl.shooter.auto_shoot = xuc.aim_fire_req;
+#endif
 }
 
 void RC::Update()

@@ -79,9 +79,25 @@ int main(void)
 {
 
 	can1_motor[2].use_sum_angle = true;
-	SystemClockConfig();
+	SystemClockConfig();      // ⚠️ 必须最先：APB1 定时器时钟（84 MHz）由这里确定
 	delay.Init(168);
 	HAL_Init();
+
+	/* ---- TIM2 1 MHz 微秒自由计数器（V2 协议的 sample_time_us 基准）----
+	 * ⚠️ 必须在 SystemClockConfig() 之后（依赖 APB1 定时器时钟就绪）。
+	 * ⚠️ 走寄存器直配、不开中断（1 MHz 溢出即每秒 100 万次中断会拖死系统），
+	 *    所以它不占任何 NVIC 向量，也不影响现有 5 个任务的中断优先级分配。
+	 * ⚠️ 必须早于任何 DMARxInit() —— 之后 IDLE 中断里就会开始打时间戳，
+	 *    晚于它则 rx_time_us 有一段恒为 0。
+	 * ⚠️ UsInit() 当前是普通成员函数（不是 static），用已有的 timer 实例调用。
+	 *    返回 false 说明 84 MHz 无法整除到目标频率（分频会有截断误差），
+	 *    此时微秒时基不可用。*/
+	if (!timer.UsInit(1000000))
+	{
+		/* 微秒时基不可用：不致命（下行协议仍能工作，只是 sample_time_us
+		 * 退化为毫秒级 ⇒ 对应 V2 的 time_source=2）。uart4.rx_time_us 会恒为 0，
+		 * 上层可据此识别。*/
+	}
 
 	can1.Init(CAN1);
 	can2.Init(CAN2);

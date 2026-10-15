@@ -1,155 +1,260 @@
 #pragma once
+
+/* ============================================================================
+ * XUC —— 上下位机通信（V2 协议 · 精简版 P1）
+ *
+ * 帧格式（全部小端）：
+ *   magic(2) A6 6A | version(1) | type(1) | payload_len(2)
+ *   | sequence(2) | boot_id(4) | payload(N) | crc16(2)
+ *   总长 = 14 + N，最大负载 128
+ *
+ * CRC：CRC-16/MCRF4XX，init 0xFFFF，反射多项式 0x8408，无最终异或，
+ *      低字节先发，覆盖 [0 .. 12+N-1]。复用全局 CRC.h（算法零改动）。
+ *
+ * 本版实现的消息：0x01 GIMBAL_IMU / 0x02 CHASSIS_IMU / 0x10 AIM_COMMAND /
+ *                 0x11 NAV_COMMAND / 0x81 LINK_STATUS
+ * 其余类型（0x03/0x20/0x21/0x30/0x31/0x80）不实现，收到即静默跳过
+ * （V2 §3.1：长度合法且 CRC 正确时跳过）。
+ *
+ * ⚠️ 本版是「只读联调版」：XUC_ALLOW_CONTROL = 0
+ *    ⇒ 0x10/0x11 只走「接受/拒绝」链路，不驱动云台与底盘。
+ *    ⇒ 上报的 flags 中 SAMPLE_TIME_VALID / AXES_VERIFIED 恒为 0，
+ *      按 V2 §4.3 上位机不得把本版数据用于控制。
+ *    轴标定（B 实验）与时间戳标定（A 实验）完成后，改下面的宏即可放行。
+ * ============================================================================ */
+
 #include "stm32f4xx_hal.h"
 #include "usart.h"
-#include <cstring>
-
 #include "FreeRTOS.h"
-#include <judgement.h>
-#include "pid.h"
-#include <string.h>
+#include <cstring>
 #include <cstddef>
-#define XUC_FRAME_LEN 40
-struct TxPacket
+#include <cmath>
+
+#ifndef XUC_PI
+#define XUC_PI 3.14159265358979323846f
+#endif
+
+/* ---------------------------------------------------------------- 帧常量 */
+#define XUC_MAGIC0            0xA6u
+#define XUC_MAGIC1            0x6Au
+#define XUC_VERSION           0x02u
+#define XUC_HDR_LEN           12u          /* magic2+ver1+type1+len2+seq2+boot4 */
+#define XUC_CRC_LEN           2u
+#define XUC_MAX_PAYLOAD       128u
+#define XUC_MAX_FRAME         (XUC_HDR_LEN + XUC_MAX_PAYLOAD + XUC_CRC_LEN)  /* 142 */
+
+/* ------------------------------------------------------------ 消息类型 */
+#define XUC_T_GIMBAL_IMU      0x01u
+#define XUC_T_CHASSIS_IMU     0x02u
+#define XUC_T_IMU_INFO        0x03u        /* 不实现 */
+#define XUC_T_AIM_COMMAND     0x10u
+#define XUC_T_NAV_COMMAND     0x11u
+#define XUC_T_SESSION_OPEN    0x20u        /* 不实现 */
+#define XUC_T_SESSION_CLOSE   0x21u        /* 不实现 */
+#define XUC_T_TIME_SYNC_REQ   0x30u        /* 不实现 */
+#define XUC_T_TIME_SYNC_RSP   0x31u        /* 不实现 */
+#define XUC_T_ACK             0x80u        /* 不实现 */
+#define XUC_T_LINK_STATUS     0x81u
+
+/* -------------------------------------------------------- 负载长度（N） */
+#define XUC_PL_GIMBAL_IMU     32u
+#define XUC_PL_CHASSIS_IMU    20u
+#define XUC_PL_IMU_INFO       32u
+#define XUC_PL_AIM_COMMAND    24u
+#define XUC_PL_NAV_COMMAND    24u
+#define XUC_PL_SESSION        4u
+#define XUC_PL_TIME_SYNC_REQ  0u
+#define XUC_PL_TIME_SYNC_RSP  12u
+#define XUC_PL_ACK            8u
+#define XUC_PL_LINK_STATUS    12u
+
+/* ------------------------------------------- 0x01 / 0x02 负载 flags 位 */
+#define XUC_F_ORIENT_VALID    0x01u
+#define XUC_F_GYRO_VALID      0x02u        /* 底盘帧固定 0 */
+#define XUC_F_SAMPLE_VALID    0x04u        /* 首版固定 0 */
+#define XUC_F_AXES_VERIFIED   0x08u        /* 首版固定 0 */
+#define XUC_F_MASK            0x0Fu
+
+/* ------------------------------------------------- 0x10 负载 flags 位 */
+#define XUC_AIM_CONTROL_EN    0x01u
+#define XUC_AIM_VALID         0x02u
+#define XUC_AIM_FRICTION_EN   0x04u
+#define XUC_AIM_FIRE_REQ      0x08u
+#define XUC_AIMF_MASK         0x0Fu
+
+/* ------------------------------------------------- 0x11 负载 flags 位 */
+#define XUC_NAV_ENABLE        0x01u
+#define XUC_NAVF_MASK         0x01u
+
+/* -------------------------------------------------------- 0x81 state 位 */
+#define XUC_ST_SESSION_OPEN   0x01u        /* 首版恒 0 */
+#define XUC_ST_AIM_FRESH      0x02u
+#define XUC_ST_GIMBAL_ALLOW   0x04u
+#define XUC_ST_FRICTION_ALLOW 0x08u
+#define XUC_ST_FIRE_ALLOW     0x10u
+#define XUC_ST_NAV_FRESH      0x20u
+#define XUC_ST_NAV_ALLOW      0x40u
+
+/* ------------------------------------ 拒绝原因 / ACK result（V2 §9） */
+enum XUC_RESULT
 {
-	uint8_t  header = 0x5A;
-	uint8_t  detect_color : 1;
-	bool     reset_tracker : 1;
-	uint8_t  reserved : 6;
-	uint8_t  rsv0[2]{};
+	XUC_OK                = 0,
+	XUC_BAD_SESSION       = 1,
+	XUC_BUSY              = 2,
+	XUC_BAD_REFERENCE     = 3,
+	XUC_STALE             = 4,
+	XUC_INVALID_VALUE     = 5,
+	XUC_NOT_ALLOWED       = 6,
+	XUC_UNSUPPORTED       = 7,
+	XUC_DUPLICATE_OR_OLD  = 8,
+	XUC_LOCAL_FAULT       = 9
+};
 
-	float    p_roll, p_pitch, p_yaw;
-	float    p_gx, p_gy, p_gz;
-	uint32_t p_time;
-	uint8_t  p_id, p_valid;
-	uint8_t  rsv1[2]{};
+/* ============================================================ 本版开关 */
+/* 0 = 只读联调（不发控制）；1 = 允许 0x10/0x11 驱动执行器。
+ * 置 1 前必须完成：A 实验（时间戳误差界）+ B 实验（单轴/参考系）+ 机构映射。*/
+#define XUC_ALLOW_CONTROL     0
+/* 底盘导航单独开关：速度指令本身是 fail-safe（丢包/超时即停），
+ * 不依赖 IMU 轴标定，只依赖 K_NAV 实测 ⇒ 可以先放行。*/
+#define XUC_ALLOW_NAV         1
+#define XUC_EPOCH             1u           /* 姿态参考系代号，恒 1 */
+#define XUC_IMU_ID_GIMBAL     1u
+#define XUC_IMU_ID_CHASSIS    2u
+#define XUC_REF_CACHE_N       48u          /* 参考样本环形缓存（≥40） */
+#define XUC_RX_BUF            512u
+#define XUC_TX_BUF            512u
+#define XUC_HALF_FRAME_MS     100u         /* 候选半帧超时 ⇒ 丢首字节重同步 */
 
-	float    c_roll, c_pitch, c_yaw;
-	uint32_t c_time;
-	uint8_t  c_id, c_valid;
-	uint8_t  rsv2[2]{};
+/* ------------------------------------------------------- 参考样本（V2 §7.2） */
+struct XUC_RefSample
+{
+	uint32_t boot_id;
+	uint32_t time_us;
+	float    yaw;          /* rad，与已发出的 0x01 完全一致 */
+	float    pitch;        /* rad */
+	uint16_t epoch;
+	uint16_t seq;
+	uint8_t  valid;
+	uint8_t  pad[3];
+};
 
-	uint16_t rx_total = 0;
-	uint16_t rx_count = 0;
-	uint8_t  rsv3[2]{};
-	uint16_t checksum = 0;
-}__attribute__((packed));
-static_assert(sizeof(TxPacket) == 64, "TxPacket layout changed");
 class XUC
 {
 public:
+	/* ================= 下行解析结果（供 RC::OnPC 消费） ================= */
 
-	TxPacket TxNuc;
+	/* --- 0x10 AIM_COMMAND --- */
+	float    aim_yaw_target   = 0.f;   /* rad，已重建的绝对目标 = ref.yaw + yaw_error */
+	float    aim_pitch_target = 0.f;   /* rad */
+	uint32_t aim_ref_time_us  = 0;     /* 参考样本的 sample_time_us */
+	uint16_t aim_valid_for_ms = 0;
+	uint16_t aim_last_seq     = 0;
+	bool     aim_accepted     = false; /* 最近一帧通过全部检查 */
+	bool     aim_control_en   = false;
+	bool     aim_valid        = false;
+	bool     aim_friction_en  = false;
+	bool     aim_fire_req     = false;
+	uint32_t aim_rx_tick      = 0;     /* 最近收到结构正确 0x10 的时刻 */
 
-	float feedforward = 1.2f;
-	float yaw;
-	float pitch;
-	float yaw_diff;
-	float pitch_diff;
-	float distance;
-	bool fireadvice = false;
-	float v_y;
-	float speed_x = 0, speed_y = 0, prespeedx, prespeedy;
-	float yaw_bias = -2.7;
-	uint16_t rx_count = 0;
-	uint16_t crc_err = 0;
-	uint16_t rx_total = 0;      // ← 新增
+	/* --- 0x11 NAV_COMMAND --- */
+	float    nav_vx = 0.f;             /* m/s，车体前向 */
+	float    nav_vy = 0.f;             /* m/s，车体左向 */
+	float    nav_wz = 0.f;             /* rad/s，绕 +Z 左转为正（首版未使用） */
+	uint16_t nav_valid_for_ms = 0;
+	bool     nav_enable   = false;
+	bool     nav_accepted = false;     /* 最近一帧通过全部检查 */
+	uint32_t nav_accept_tick = 0;
 
-	float x, y, z;
-	float vx, vy, vz;
+	/* --- 底盘速度平滑（递推量，跨周期保留） --- */
+	float    prespeedx = 0.f;          /* 本周期实际允许的 rpm */
+	float    prespeedy = 0.f;
 
-	bool track_flag;
-	bool test_navigation = false;
+	/* ===================== 诊断计数（watch 用） ===================== */
+	uint16_t rx_total    = 0;          /* 从队列取到快照的次数 */
+	uint16_t rx_count    = 0;          /* 结构+CRC 通过且类型/长度已知的帧数 */
+	uint16_t crc_err     = 0;          /* magic 命中但 CRC 失败 */
+	uint16_t resync_cnt  = 0;          /* 重同步/溢出次数 */
+	uint8_t  last_reject = XUC_OK;     /* 最近拒绝原因（0 = 启动值，不代表刚接受） */
+	uint32_t boot_id     = 0;
 
-
-	float rad_pitch{}, rad_yaw{};
-	float aim_x;
-	float aim_y;
-	float aim_z;
-
-
-	struct {
-		uint8_t game_type;
-		uint8_t game_progress = 4;
-		uint16_t stage_remain_time = 420;
-	} test_game_status;
-
-	struct {
-		uint16_t red_1_robot_HP;
-		uint16_t red_2_robot_HP;
-		uint16_t red_3_robot_HP;
-		uint16_t red_4_robot_HP;
-		uint16_t red_5_robot_HP;
-		uint16_t red_7_robot_HP;
-		uint16_t red_outpost_HP = 1400;
-		uint16_t red_base_HP;
-		uint16_t blue_1_robot_HP;
-		uint16_t blue_2_robot_HP;
-		uint16_t blue_3_robot_HP;
-		uint16_t blue_4_robot_HP;
-		uint16_t blue_5_robot_HP;
-		uint16_t blue_7_robot_HP;
-		uint16_t blue_outpost_HP = 1400;
-		uint16_t blue_base_HP;
-	}  test_game_robot_HP;
-
-	enum ARMOR_COLOR { RED = 0, BLUE };
-	ARMOR_COLOR own_color;
-
-	uint32_t count = 0, navi_count = 0, aim_count = 0;
+	/* ============================ 接口 ============================ */
 	void Init(UART* huart, USART_TypeDef* Instance, uint32_t BaudRate);
-	void Decode();
-	void Encode();
-	PID autoaim_controller[2];
-	bool stm32_fireadvice = false;
-	float yaw_pre, yaw_spd, k_feedforward = 0.5f;
+	void Decode();                     /* DecodeTask 调用 */
+	void Encode();                     /* 上行组帧 + 发送 */
 
-	uint16_t CRC16_INIT = 0xFFFF;
-	uint16_t CRC_TAB[256] = {
-		0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf, 0x8c48, 0x9dc1, 0xaf5a, 0xbed3,
-		0xca6c, 0xdbe5, 0xe97e, 0xf8f7, 0x1081, 0x0108, 0x3393, 0x221a, 0x56a5, 0x472c, 0x75b7, 0x643e,
-		0x9cc9, 0x8d40, 0xbfdb, 0xae52, 0xdaed, 0xcb64, 0xf9ff, 0xe876, 0x2102, 0x308b, 0x0210, 0x1399,
-		0x6726, 0x76af, 0x4434, 0x55bd, 0xad4a, 0xbcc3, 0x8e58, 0x9fd1, 0xeb6e, 0xfae7, 0xc87c, 0xd9f5,
-		0x3183, 0x200a, 0x1291, 0x0318, 0x77a7, 0x662e, 0x54b5, 0x453c, 0xbdcb, 0xac42, 0x9ed9, 0x8f50,
-		0xfbef, 0xea66, 0xd8fd, 0xc974, 0x4204, 0x538d, 0x6116, 0x709f, 0x0420, 0x15a9, 0x2732, 0x36bb,
-		0xce4c, 0xdfc5, 0xed5e, 0xfcd7, 0x8868, 0x99e1, 0xab7a, 0xbaf3, 0x5285, 0x430c, 0x7197, 0x601e,
-		0x14a1, 0x0528, 0x37b3, 0x263a, 0xdecd, 0xcf44, 0xfddf, 0xec56, 0x98e9, 0x8960, 0xbbfb, 0xaa72,
-		0x6306, 0x728f, 0x4014, 0x519d, 0x2522, 0x34ab, 0x0630, 0x17b9, 0xef4e, 0xfec7, 0xcc5c, 0xddd5,
-		0xa96a, 0xb8e3, 0x8a78, 0x9bf1, 0x7387, 0x620e, 0x5095, 0x411c, 0x35a3, 0x242a, 0x16b1, 0x0738,
-		0xffcf, 0xee46, 0xdcdd, 0xcd54, 0xb9eb, 0xa862, 0x9af9, 0x8b70, 0x8408, 0x9581, 0xa71a, 0xb693,
-		0xc22c, 0xd3a5, 0xe13e, 0xf0b7, 0x0840, 0x19c9, 0x2b52, 0x3adb, 0x4e64, 0x5fed, 0x6d76, 0x7cff,
-		0x9489, 0x8500, 0xb79b, 0xa612, 0xd2ad, 0xc324, 0xf1bf, 0xe036, 0x18c1, 0x0948, 0x3bd3, 0x2a5a,
-		0x5ee5, 0x4f6c, 0x7df7, 0x6c7e, 0xa50a, 0xb483, 0x8618, 0x9791, 0xe32e, 0xf2a7, 0xc03c, 0xd1b5,
-		0x2942, 0x38cb, 0x0a50, 0x1bd9, 0x6f66, 0x7eef, 0x4c74, 0x5dfd, 0xb58b, 0xa402, 0x9699, 0x8710,
-		0xf3af, 0xe226, 0xd0bd, 0xc134, 0x39c3, 0x284a, 0x1ad1, 0x0b58, 0x7fe7, 0x6e6e, 0x5cf5, 0x4d7c,
-		0xc60c, 0xd785, 0xe51e, 0xf497, 0x8028, 0x91a1, 0xa33a, 0xb2b3, 0x4a44, 0x5bcd, 0x6956, 0x78df,
-		0x0c60, 0x1de9, 0x2f72, 0x3efb, 0xd68d, 0xc704, 0xf59f, 0xe416, 0x90a9, 0x8120, 0xb3bb, 0xa232,
-		0x5ac5, 0x4b4c, 0x79d7, 0x685e, 0x1ce1, 0x0d68, 0x3ff3, 0x2e7a, 0xe70e, 0xf687, 0xc41c, 0xd595,
-		0xa12a, 0xb0a3, 0x8238, 0x93b1, 0x6b46, 0x7acf, 0x4854, 0x59dd, 0x2d62, 0x3ceb, 0x0e70, 0x1ff9,
-		0xf78f, 0xe606, 0xd49d, 0xc514, 0xb1ab, 0xa022, 0x92b9, 0x8330, 0x7bc7, 0x6a4e, 0x58d5, 0x495c,
-		0x3de3, 0x2c6a, 0x1ef1, 0x0f78
-	};
+	/* --- 供 RC::OnPC 查询 --- */
+	bool     AimReady();               /* 控制许可：已接受 + 未过期 + 本版允许 */
+	bool     NavReady();
+	uint16_t AimAgeMs();
+	uint8_t  LinkState();
+	void     RevokeAim();              /* 撤销自动瞄准/摩擦轮/开火许可 */
 
-	
-
-private:
-
-
-	QueueHandle_t* queue_handler = NULL;
-	BaseType_t pd_Rx, pd_Tx;
-	UART* m_uart;
-
-	uint8_t* frame;
-	uint8_t m_frame[UART_MAX_LEN]{};
-	uint8_t tx_data[96];
-
-	float FR4(uint8_t* p)
+	/* --- 工具 --- */
+	static float WrapPi(float a)
 	{
-		float s;
-		memcpy(&s, p, 4);
-		return s;
+		while (a >=  XUC_PI) a -= 2.f * XUC_PI;
+		while (a <  -XUC_PI) a += 2.f * XUC_PI;
+		return a;
 	}
 
-	int test_cont = 0;
+private:
+	UART*           m_uart = nullptr;
+	QueueHandle_t*  queue_handler = nullptr;
+
+	uint8_t  m_frame[UART_MAX_LEN]{};  /* 队列快照落点 */
+	uint8_t  rx_buf[XUC_RX_BUF]{};     /* 流式接收缓冲 */
+	uint16_t rx_len = 0;
+	uint32_t pending_ms = 0;           /* 候选半帧起始时刻（HAL_GetTick） */
+	uint8_t  tx_buf[XUC_TX_BUF]{};     /* 上行组帧缓冲（一次 DMA 发全部） */
+
+	uint16_t seq_gimbal = 0;
+	uint16_t seq_chassis = 0;
+	uint16_t seq_link = 0;
+
+	bool     aim_seq_init = false;
+	bool     nav_seq_init = false;
+	uint16_t nav_last_seq = 0;
+
+	XUC_RefSample ref_cache[XUC_REF_CACHE_N]{};
+	uint16_t ref_head = 0;
+
+	/* 本轮 Decode 收到的这一帧的元信息（取自 UART 对象，与队列内容同拍）。
+	 * ⚠️ 由 Decode() 在取到帧的同一分支内写入，且【只写一次】——
+	 *    队列是深度 1 覆盖写，读到一半被 ISR 覆盖会得到
+	 *    「A 帧的字节 + B 帧的时间戳」这种错配。*/
+	uint32_t frame_time_us = 0;      /* ISR 打的 µs 到达时刻（TIM2 @1MHz） */
+	uint16_t frame_len     = 0;      /* = UART_MAX_LEN - NDTR，真实字节数 */
+
+	/* --- 内部 --- */
+	/* ⚠️ 原来的 `uint32_t NowUs() { return xTaskGetTickCount() * 1000u; }`
+	 * 已删除，两个原因：
+	 *   ① 编译不过：xuc.h 只 include 了 FreeRTOS.h，没 include task.h，
+	 *      xTaskGetTickCount 不可见（task.h 声明这个符号）。
+	 *   ② 更根本：它【分辨率是 1 ms，不是 1 µs】。tick 本身就是 1 ms 粒度，
+	 *      乘 1000 只是把毫秒换了标签，没有增加任何精度。
+	 *      而 V2 的时间误差预算是 2 ms —— 用一个 1 ms 量化的时间源去判
+	 *      样本新鲜度，等于凭空吃掉一半预算。
+	 *
+	 * ⇒ 统一用 TIM::NowUs()（TIM2 @1 MHz，真 1 µs）。
+	 *    同一份协议里只能有一个时基：sample_time_us 已经是 usart.cpp 的 ISR
+	 *    用 TIM::NowUs() 打的，age_us 再用另一个来源就是两套时基混算。*/
+	uint16_t BuildFrame(uint8_t type, const uint8_t* payload, uint16_t plen,
+	                    uint16_t seq, uint8_t* out);
+	static bool PayloadLenOk(uint8_t type, uint16_t plen);
+
+	void AppendRx(const uint8_t* p, uint16_t n);
+	void ParseRx();
+	void HandleAim(const uint8_t* pl, uint16_t frame_seq, uint32_t f_boot);
+	void HandleNav(const uint8_t* pl, uint16_t frame_seq, uint32_t f_boot);
+
+	void PushRef(uint16_t epoch, uint16_t seq, uint32_t t_us, float yaw, float pitch);
+	const XUC_RefSample* FindRef(uint16_t epoch, uint16_t seq, uint32_t t_us) const;
+
+	uint8_t GimbalFlags();
+	uint8_t ChassisFlags();
 };
+
+/* 帧长上限自检：三帧同发不得超过发送缓冲 */
+static_assert(XUC_MAX_FRAME * 3u <= XUC_TX_BUF, "tx_buf too small");
 
 extern XUC xuc;

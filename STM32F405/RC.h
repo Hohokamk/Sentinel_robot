@@ -54,16 +54,19 @@ public:
 	void RC_CheckState();
 	void RC_Control();
 
+	/* --- 上位机（V2）分段处理，供 watch/调试 --- */
+	void ApplyNav();       // 0x11 NAV_COMMAND → 底盘 speedx/speedy
+	void ApplyAim();       // 0x10 AIM_COMMAND → 云台 mark_pitch / setangle
+	void StopChassis();    // 底盘速度归零 + 平滑量复位
+
+	uint16_t rc_lost_cnt = 0;    // 失联次数，上车 watch 用
+
 private:
 	QueueHandle_t* queueHandler = NULL;
 	BaseType_t pd_Rx, pd_Tx;
 	UART* m_uart;
 	uint8_t m_frame[UART_MAX_LEN]{};
-	uint16_t pc_timeout = 0;
-	uint16_t last_rx_count = 0;
 	uint32_t last_rc_tick = 0;   // 最后一次收到【有效】DBUS 帧的时刻
-	uint16_t rc_lost_cnt = 0;    // 失联次数，上车 watch 用（可选）
-
 };
 
 extern RC rc;
