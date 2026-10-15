@@ -62,9 +62,11 @@
 ```
 **LEN = 数据域长度**（不含帧头/帧类型/LEN/CRC），**帧总长 = len + 6**（实测 len=76 ⇒ 82）。
 **算法 = CRC-16/CCITT-FALSE**（poly `0x1021`、init `0x0000`、MSB-first、不反射、无 final xor）。**与 V2 PC 帧的 MCRF4XX 是两个不同算法，别混。**
-🔴 **CRC 是【两段拼接】：`buf[0..3]`（帧头+长度）+ `buf[6..6+len]`（数据域），中间的 CRC 字段 `[4..5]` 不参与计算。**
-⚠️ 「除 CRC 本身外」= CRC 字段不算进去，**不是**"算进去凑自同步"（两种理解结果完全不同）。⇒ `Check()` 用 `uint16_t* acc` 支持累加器跨调用延续。
-⚠️ **查手册要排在「让用户截图 / 写穷举诊断」之前**。中文全文在 `kancloud.cn/hipnuc/test/3006876`（含帧结构表、CRC 代码、0x91 字段表、样例帧），可 `curl` 抓 markdown；`hipnuc.com` 那份英文 PDF 只有硬件规格、无协议。
+🔴 **CRC 是【两段拼接】：`buf[0..3]`（帧头+长度）+ `buf[6..6+len]`（数据域），中间的 CRC 字段 `[4..5]` 不参与计算；且【只能在末尾比较一次】。**
+⚠️ 「除 CRC 本身外」= CRC 字段不算进去，**不是**"算进去凑自同步"（两种理解结果完全不同）。
+⇒ 实现用 `CrcReset() / CrcAccum(p,n) / CrcResult()` 三段接口，**不暴露比较语义**，杜绝误用。
+🔴 **踩过的坑**：`if (!Check(seg1)) return; if (!Check(seg2)) return;` ⇒ 第一段中间值（样例帧 `0x035D`）≠ 最终 CRC（`0x516C`）⇒ 第一行就 return，字段永不更新。症状与"覆盖范围错"完全一样，极易误判。
+⚠️ **查手册要排在「让用户截图 / 写穷举诊断」之前**。中文全文在 `kancloud.cn/hipnuc/test/3006876`（含帧结构表、CRC 代码、0x91 字段表、样例帧），可 `curl` 抓 markdown；`hipnuc.com` 那份英文 PDF 只有硬件规格、无协议；`sensor360.org` 的 PDF 下载会超时截断。
 
 **0x91 字段表**（偏移相对 `p = rxData+6`）：`0`=tag｜`1`=ID(u32)｜`4`=气压 Pa｜**`8`=时间戳 ms（A 实验基准）**｜`12`=acc XYZ (1G)｜`24`=gyro XYZ (deg/s)｜`36`=mag XYZ (uT)｜`48`=Roll/Pitch/Yaw (deg)｜`60`=四元数 WXYZ。固定 76 字节。
 🔴 **早期代码把 gyro 和角度的 roll/pitch 都读反了**，此前记的"对调是为补偿 90° 安装"是**错误结论**（实为无依据的历史错位）。已按手册恢复 `roll@24 / pitch@28 / yaw@32`、`roll@48 / pitch@52 / yaw@56`。**B 实验起点已变，结论要推翻重来。**
@@ -138,6 +140,8 @@
 ## 七、活跃陷阱
 - 🔴 **编译验证用真实 rsp，不要只编探针**：工程里有 `VisualGDB/Debug/*.gcc.rsp`（含全部 `-I`/`-D`/`-mcpu`/CMSIS 路径），直接 `arm-none-eabi-g++.exe @VisualGDB/Debug/imu.gcc.rsp` 就能编真 TU。⚠️ rsp 已带 `-MD -MP -MF` 和 `-o`，**追加 `-o` 会报 "too many filenames"**，原样跑。`for f in VisualGDB/Debug/*.gcc.rsp; do arm-none-eabi-g++.exe @$f; done` 即全 TU 全编。
   ⇒ **探针只能验逻辑，验不到 include/类型/真实宏**。曾因只编探针而漏掉真实 `imu.cpp` 的 const 编译错误。
+- 🔴 **探针必须覆盖"多种调用姿势"**：累加器型 API（`CrcAccum` 这类）要同时测**错误用法**，否则"每段各自比较"这种 bug 必然漏到实机。
+- 🔴 **收到"改动后出现新症状"的报告，第一反应应是"我的新改动引入了什么"，不是"上次没改对"** —— 尤其同一处连续改了两轮时，两个 bug 症状会互相掩盖。
 - 🔴 **`x * 1000` 不等于把 x 变成高精度**：时间源的真实分辨率 = 底层计数器自增周期。`xTaskGetTickCount()` 是 1 ms，乘 1000 只放大数值。要 µs 必须有 1 MHz 硬件计数器。
 - 🔴 **分频计数器绝不用共享全局 tick**：原 `switch ((timer.counter++) % 3)`，`timer.counter` 在**中断（TIM3@1kHz）与任务（1kHz）各 +1 一次** ⇒ 余数步进 `(1000·Δt+1) mod 3`，只有两时钟相位恰好对齐才等于"每 3ms 各发一帧"，相位一漂就变「某帧连发两次、另一帧间隔 6ms」⇒ 底盘电流环周期抖动。已改任务私有 `static uint8_t can_div`，`timer.counter` 成员已删
 - ⚠️ **TIM3 现在挂着一个 1 kHz 空中断**（`timer.Init(BASE,TIM3,1000).BaseInit()`），回调已清空。若确认无消费者可整条去掉（改 `STM32F405.cpp`）
