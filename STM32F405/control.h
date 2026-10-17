@@ -55,6 +55,7 @@ public:
 
 		bool auto_shoot = false;
 		bool openRub = false, supply_bullet = false;
+		volatile int32_t friction_speed_diff = 0;//摩擦轮速度差
 		bool fraction = false;
 		bool fullheat_shoot = false;
 		bool heat_ulimit = false;
