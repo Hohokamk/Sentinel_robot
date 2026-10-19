@@ -154,7 +154,7 @@ void RC::ApplyAim()
 	/* ---- yaw：M6020 POS，setangle 是编码值，ClampAngle 在 PANTILE::Update 里兜底 ----
 	 * 用 WrapPi 取最短路径，防止目标在 ±π 边界时绕远路。*/
 	Motor* y = ctrl.pantile_motor[CONTROL::PANTILE::YAW];
-	const float yerr = xuc::WrapPi(xuc.aim_yaw_target - imu_pantile.GetAngleYaw() * DEG2RAD);
+	const float yerr = XUC::WrapPi(xuc.aim_yaw_target - imu_pantile.GetAngleYaw() * DEG2RAD);
 	if (y && y->has_feedback && fabsf(yerr) > DB)
 		y->setangle += KY * yerr * RAD2CNT;
 

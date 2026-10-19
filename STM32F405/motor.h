@@ -6,7 +6,7 @@
 #include "kalman.h"
 #include "label.h"
 #define WHEEL_RADIUS_MM 47.5f
-#define GEAR_RATIO      36.0f
+#define GEAR_RATIO      19.2032f
 
 constexpr auto MAXSPEED = 5000;
 //constexpr auto ADJUSTSPEED = 3000;

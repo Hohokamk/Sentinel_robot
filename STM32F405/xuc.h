@@ -71,8 +71,8 @@
 /* ------------------------------------------- 0x01 / 0x02 负载 flags 位 */
 #define XUC_F_ORIENT_VALID    0x01u
 #define XUC_F_GYRO_VALID      0x02u        /* 底盘帧固定 0 */
-#define XUC_F_SAMPLE_VALID    0x04u        /* 首版固定 0 */
-#define XUC_F_AXES_VERIFIED   0x08u        /* 首版固定 0 */
+#define XUC_F_SAMPLE_VALID    0x04u        /* 永久 0：A 实验已决定跳过（时间戳误差不可修且无害） */
+#define XUC_F_AXES_VERIFIED   0x08u        /* 2026-10-18 实测支撑后置 1 */
 #define XUC_F_MASK            0x0Fu
 
 /* ------------------------------------------------- 0x10 负载 flags 位 */
@@ -112,10 +112,26 @@ enum XUC_RESULT
 
 /* ============================================================ 本版开关 */
 /* 0 = 只读联调（不发控制）；1 = 允许 0x10/0x11 驱动执行器。
- * 置 1 前必须完成：A 实验（时间戳误差界）+ B 实验（单轴/参考系）+ 机构映射。*/
-#define XUC_ALLOW_CONTROL     0
+ *
+ * 🔴 置 1 的前置条件（2026-10-18 已全部完成，依据见 .workbuddy/memory/2026-10-18.md）：
+ *   ✅ 云台方向 —— 用户实测「右摇杆上推=抬头、左摇杆右推=右转」，与 IMU 实测
+ *      「逆时针 yaw 增大 / 低头 pitch 增大」反推出的执行侧方向【同向】
+ *      ⇒ ApplyAim 里两个 += 的符号正确，无需取负。
+ *   ✅ IMU 轴向 —— 用户实测两个 IMU 均逆时针 yaw 增大；枪口低头 pitch 增大；
+ *      底盘只能动 yaw ⇒ Z 轴朝上、yaw 绕铅垂轴 ⇒ AXES 可信。
+ *   ✅ 底盘方向 —— 用户确认遥控器底盘正常 ⇒ nav_vx+ = 前进、nav_vy+ = 左移。
+ *   ❌ A 实验（sample_time_us 误差界 ≤ 2ms）—— 【已决定跳过】。
+ *      理由：时间戳的抖动源不可修且无害（晶振偏差、UART 传输时间都是常数偏移，
+ *      会被 PushRef/age_us 一起消掉），实测出来也无法改变任何代码。
+ *      ⇒ 对应地SAMPLE_VALID 恒为 0，这是【诚实的标注】而非缺陷。
+ *      上位机不得基于 sample_time_us 做外推，只能用姿态 + gyro 自己积分。
+ *
+ * ⚠️ 上车第一次放行的判据：清空云台周围场地，看 ApplyAim 的误差是否单调收敛。
+ *    发散 / 顶到 dm_pitch_min|max(-0.55/+0.4 rad) ⇒ 符号反了，回这里给对应行取负。*/
+#define XUC_ALLOW_CONTROL     1
 /* 底盘导航单独开关：速度指令本身是 fail-safe（丢包/超时即停），
- * 不依赖 IMU 轴标定，只依赖 K_NAV 实测 ⇒ 可以先放行。*/
+ * 不依赖 IMU 轴标定，只依赖 K_NAV 实测 ⇒ 可以先放行。
+ * ⚠️ K_NAV 仍是【估算值】，必须实测标定后才算可用（见 docs_通信协议.md §2.7）。*/
 #define XUC_ALLOW_NAV         1
 #define XUC_EPOCH             1u           /* 姿态参考系代号，恒 1 */
 #define XUC_IMU_ID_GIMBAL     1u
