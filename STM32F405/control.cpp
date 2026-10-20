@@ -173,7 +173,8 @@ void CONTROL::SHOOTER::Update()
 	
 	const float v0 = ctrl.shooter_motor[0] ? fabsf((float)ctrl.shooter_motor[0]->curspeed) : 0.f;
 	const float v1 = ctrl.shooter_motor[1] ? fabsf((float)ctrl.shooter_motor[1]->curspeed) : 0.f;
-	const float rpm_avg = 0.5f * (v0 + v1);//两个轮子的平均转速
+	friction_speed_diff = static_cast<int32_t>(fabsf(v0 - v1));//摩擦轮速度差，调PID时候引入的变量
+	//const float rpm_avg = 0.5f * (v0 + v1);//两个轮子的平均转速
 	
 
 	// ③ 扳机：死区阈值 + 迟滞（因为摇杆是模拟信号，要转换成数字信号）
@@ -209,8 +210,10 @@ void CONTROL::SHOOTER::Update()
 	Motor* d = ctrl.supply_motor[0];//拨弹轮
 	if (!d || !d->has_feedback || !d->angle_latched) return;   // 未就绪 → 别碰目标
 
-	const bool allow = openRub && rpm_avg > (float)shoot_speed * 0.8f;//确保摩擦轮已经转起来了，才允许拨盘转动，这里以达到80%转速为准
-
+	const float ready_speed = fabsf((float)shoot_speed) * 0.8f;//摩擦轮转速达标阈值，达到80%转速就可以拨盘了
+	const bool allow = openRub && v0 >= ready_speed && v1 >= ready_speed && friction_speed_diff <= 300;
+	//两摩擦轮分别达到80%转速，且摩擦轮速度差小于300，才允许拨盘
+	//取300是因为测试过程单发连发摩擦轮转速差峰值约50rpm，先取300
 
 	if (fire_pulse && allow) d->setangle += -para.bullet_step;//单发 这里的步长是以7发为准，8182*36/7得到的
 	if (fire_cont && allow)//连发
