@@ -200,7 +200,7 @@ void Motor::getmax(const type_t type)
 	case M2006:
 		maxcurrent = 10000;
 		adjspeed = 1000;
-		maxspeed = 3000;
+		maxspeed = 5000;
 		break;
 	default:;
 	}
